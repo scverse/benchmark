@@ -1,26 +1,67 @@
-use std::sync::Arc;
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Mutex},
+};
 
-use axum::{response::IntoResponse, routing::post, Router};
+use axum::{
+    extract::{FromRef, State},
+    response::IntoResponse,
+    routing::post,
+    Router,
+};
 use axum_github_webhook_extract::{GithubEvent, GithubToken};
 use serde::Deserialize;
 use tower_http::trace::TraceLayer;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 enum Event {
     Enqueue { repo: String, branch: String },
 }
 
-async fn handle(GithubEvent(e): GithubEvent<Event>) -> impl IntoResponse {
+#[derive(Debug, Clone)]
+struct AppState {
+    token: GithubToken,
+    events: Arc<Mutex<VecDeque<Event>>>,
+}
+
+impl AppState {
+    fn new(token: GithubToken) -> Self {
+        Self {
+            token,
+            events: Default::default(),
+        }
+    }
+}
+
+impl FromRef<AppState> for GithubToken {
+    fn from_ref(state: &AppState) -> GithubToken {
+        GithubToken(Arc::clone(&state.token.0))
+    }
+}
+
+async fn handle(
+    State(state): State<AppState>,
+    GithubEvent(ref e): GithubEvent<Event>,
+) -> impl IntoResponse {
     match e {
-        Event::Enqueue { repo, branch } => format!("repo: {repo}, branch: {branch}"),
+        Event::Enqueue { repo, branch } => {
+            state
+                .events
+                .lock()
+                .expect("mutex was poisoned")
+                .push_back(e.clone());
+            format!("repo: {repo}, branch: {branch}")
+        }
     }
 }
 
 pub(crate) fn app() -> Result<Router, Box<dyn std::error::Error>> {
     let token = std::env::var("SECRET_TOKEN")?;
+    let state = AppState::new(GithubToken(Arc::new(token)));
+
     Ok(Router::new()
         .route("/", post(handle))
         .layer(TraceLayer::new_for_http())
-        .with_state(GithubToken(Arc::new(token))))
+        .with_state(state))
 }
