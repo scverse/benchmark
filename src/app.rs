@@ -17,22 +17,20 @@ use tower_http::trace::TraceLayer;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
-enum Event {
+pub(crate) enum Event {
     Enqueue { repo: String, branch: String },
 }
 
 #[derive(Debug, Clone)]
 struct AppState {
     token: GithubToken,
+    // TODO: limit queue size?
     events: Arc<Mutex<VecDeque<Event>>>,
 }
 
 impl AppState {
-    fn new(token: GithubToken) -> Self {
-        Self {
-            token,
-            events: Default::default(),
-        }
+    fn new(token: GithubToken, events: Arc<Mutex<VecDeque<Event>>>) -> Self {
+        Self { token, events }
     }
 }
 
@@ -70,9 +68,11 @@ async fn handle(
     }
 }
 
-pub(crate) fn app() -> Result<Router, Box<dyn std::error::Error>> {
+pub(crate) fn app(
+    events: Arc<Mutex<VecDeque<Event>>>,
+) -> Result<Router, Box<dyn std::error::Error>> {
     let token = std::env::var("SECRET_TOKEN")?;
-    let state = AppState::new(GithubToken(Arc::new(token)));
+    let state = AppState::new(GithubToken(Arc::new(token)), events);
 
     Ok(Router::new()
         .route("/", post(handle))
