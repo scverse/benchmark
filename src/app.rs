@@ -5,11 +5,13 @@ use std::{
 
 use axum::{
     extract::{FromRef, State},
+    http::StatusCode,
     response::IntoResponse,
     routing::post,
     Router,
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken};
+use octocrab::params::repos::Reference;
 use serde::Deserialize;
 use tower_http::trace::TraceLayer;
 
@@ -36,7 +38,7 @@ impl AppState {
 
 impl FromRef<AppState> for GithubToken {
     fn from_ref(state: &AppState) -> GithubToken {
-        GithubToken(Arc::clone(&state.token.0))
+        state.token.clone()
     }
 }
 
@@ -45,13 +47,25 @@ async fn handle(
     GithubEvent(ref e): GithubEvent<Event>,
 ) -> impl IntoResponse {
     match e {
-        Event::Enqueue { repo, branch } => {
-            state
-                .events
-                .lock()
-                .expect("mutex was poisoned")
-                .push_back(e.clone());
-            format!("repo: {repo}, branch: {branch}")
+        Event::Enqueue { repo, branch, .. } => {
+            match octocrab::instance()
+                .repos("scverse", repo)
+                .get_ref(&Reference::Branch(branch.to_owned()))
+                .await
+            {
+                Ok(_) => {
+                    state
+                        .events
+                        .lock()
+                        .expect("mutex was poisoned")
+                        .push_back(e.clone());
+                    Ok("enqueued".to_string())
+                }
+                Err(_) => Err((
+                    StatusCode::BAD_REQUEST,
+                    format!("Error: {branch} is not a branch in {repo}."),
+                )),
+            }
         }
     }
 }
