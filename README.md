@@ -2,7 +2,7 @@
 
 ## Development plan:
 
-1. [MVP](https://github.com/scverse/benchmark/milestone/1): 
+1. [MVP](https://github.com/scverse/benchmark/milestone/1):
 
    Queue and runs exist on the benchmark server, which handles everything
 
