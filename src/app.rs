@@ -6,17 +6,21 @@ use serde::Deserialize;
 use tower_http::trace::TraceLayer;
 
 #[derive(Debug, Deserialize)]
-struct Event {
-    action: String,
+#[serde(tag = "action", rename_all = "snake_case")]
+enum Event {
+    Enqueue { repo: String, branch: String },
 }
-async fn echo(GithubEvent(e): GithubEvent<Event>) -> impl IntoResponse {
-    e.action
+
+async fn handle(GithubEvent(e): GithubEvent<Event>) -> impl IntoResponse {
+    match e {
+        Event::Enqueue { repo, branch } => format!("repo: {repo}, branch: {branch}"),
+    }
 }
 
 pub(crate) fn app() -> Result<Router, Box<dyn std::error::Error>> {
     let token = std::env::var("SECRET_TOKEN")?;
     Ok(Router::new()
-        .route("/", post(echo))
+        .route("/", post(handle))
         .layer(TraceLayer::new_for_http())
         .with_state(GithubToken(Arc::new(token))))
 }
