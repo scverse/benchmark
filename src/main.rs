@@ -1,10 +1,7 @@
 use anyhow::Result;
+use futures::lock::Mutex;
 use futures::TryFutureExt;
-use std::{
-    collections::VecDeque,
-    future::IntoFuture,
-    sync::{Arc, Mutex},
-};
+use std::{collections::VecDeque, future::IntoFuture, sync::Arc};
 use tokio::task::JoinSet;
 
 use tokio::net::TcpListener;

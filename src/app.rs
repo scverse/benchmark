@@ -1,8 +1,6 @@
 use anyhow::{Context, Result};
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-};
+use futures::lock::Mutex;
+use std::{collections::VecDeque, sync::Arc};
 
 use axum::{
     extract::{FromRef, State},
@@ -15,6 +13,8 @@ use axum_github_webhook_extract::{GithubEvent, GithubToken};
 use octocrab::params::repos::Reference;
 use serde::Deserialize;
 use tower_http::trace::TraceLayer;
+
+pub(crate) const ORG: &str = "scverse";
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
@@ -48,16 +48,12 @@ async fn handle(
     match e {
         Event::Enqueue { repo, branch, .. } => {
             match octocrab::instance()
-                .repos("scverse", repo)
+                .repos(ORG, repo)
                 .get_ref(&Reference::Branch(branch.to_owned()))
                 .await
             {
                 Ok(_) => {
-                    state
-                        .events
-                        .lock()
-                        .expect("mutex was poisoned")
-                        .push_back(e.clone());
+                    state.events.lock().await.push_back(e.clone());
                     Ok("enqueued".to_string())
                 }
                 Err(_) => Err((

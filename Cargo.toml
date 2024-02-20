@@ -7,7 +7,10 @@ edition = "2021"
 anyhow = "1.0.80"
 axum = { version = "0.7.4", features = ["http2", "tokio", "tracing", "macros"] }
 axum-github-webhook-extract = "0.2.0"
+directories = "5.0.1"
 futures = "0.3.30"
+git2 = "0.18.2"
+lazy_static = "1.4.0"
 octocrab = "0.34.1"
 serde = { version = "1.0.196", features = ["derive"] }
 # macros, rt-multi-thread for #[tokio::main]
