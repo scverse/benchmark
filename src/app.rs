@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::{
     collections::VecDeque,
     sync::{Arc, Mutex},
@@ -70,7 +70,8 @@ async fn handle(
 }
 
 pub(crate) fn app(events: Arc<Mutex<VecDeque<Event>>>) -> Result<Router> {
-    let token = std::env::var("SECRET_TOKEN")?;
+    let token = std::env::var("SECRET_TOKEN")
+        .context("Requires the SECRET_TOKEN env variable to be set.")?;
     let state = AppState::new(GithubToken(Arc::new(token)), events);
 
     Ok(Router::new()

@@ -14,9 +14,7 @@ mod runner;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
+    init_tracing();
 
     let events: Arc<Mutex<VecDeque<app::Event>>> = Default::default();
     let app = app::app(events.clone())?; // clone Arc, not data
@@ -29,4 +27,20 @@ async fn main() -> Result<()> {
         let _ = res?;
     }
     Ok(())
+}
+
+fn init_tracing() {
+    use tracing::Level;
+    use tracing_subscriber::prelude::*;
+
+    let tracing_layer = tracing_subscriber::fmt::layer();
+    let filter = tracing_subscriber::filter::Targets::new()
+        .with_target("tower_http::trace::on_response", Level::TRACE)
+        .with_target("tower_http::trace::on_request", Level::TRACE)
+        .with_default(Level::INFO);
+
+    tracing_subscriber::registry()
+        .with(tracing_layer)
+        .with(filter)
+        .init();
 }
