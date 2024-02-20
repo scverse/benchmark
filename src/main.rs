@@ -7,6 +7,7 @@ use tokio::task::JoinSet;
 use tokio::net::TcpListener;
 
 mod app;
+mod git;
 mod runner;
 
 #[tokio::main]
