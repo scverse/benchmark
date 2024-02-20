@@ -13,6 +13,7 @@ git2 = "0.18.2"
 lazy_static = "1.4.0"
 octocrab = "0.34.1"
 serde = { version = "1.0.196", features = ["derive"] }
+tap = "1.0.1"
 # macros, rt-multi-thread for #[tokio::main]
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "process"] }
 tower-http = { version = "0.5.1", features = ["trace"] }
