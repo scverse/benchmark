@@ -22,7 +22,7 @@ pub(crate) async fn runner(events: Arc<Mutex<VecDeque<Event>>>) -> Result<()> {
             match event {
                 Event::Enqueue { repo, branch } => {
                     tracing::info!("Handling request for {ORG}/{repo}@{branch}");
-                    run(&repo, &branch).await?
+                    run(repo, branch).await?
                 }
             }
         }
@@ -30,14 +30,14 @@ pub(crate) async fn runner(events: Arc<Mutex<VecDeque<Event>>>) -> Result<()> {
     }
 }
 
-async fn run(repo: &str, branch: &str) -> Result<()> {
-    let repo = sync_repo(repo, branch).await?;
+async fn run(repo: String, branch: String) -> Result<()> {
+    let repo = tokio::task::spawn_blocking(move || sync_repo(&repo, &branch)).await??;
     tracing::info!("Synced repo to {:?}", repo.path());
     // TODO: run
     Ok(())
 }
 
-async fn sync_repo(repo: &str, branch: &str) -> Result<git2::Repository> {
+fn sync_repo(repo: &str, branch: &str) -> Result<git2::Repository> {
     let path = CACHE_DIR.join(repo);
     let repo = if path.is_dir() {
         let r = git2::Repository::open(path)?;
