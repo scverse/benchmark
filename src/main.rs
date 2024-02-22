@@ -1,7 +1,6 @@
 use anyhow::Result;
-use futures::lock::Mutex;
-use futures::TryFutureExt;
-use std::{collections::VecDeque, future::IntoFuture, sync::Arc};
+use futures::{channel::mpsc::channel, TryFutureExt};
+use std::future::IntoFuture;
 use tokio::task::JoinSet;
 
 use tokio::net::TcpListener;
@@ -14,13 +13,13 @@ mod runner;
 async fn main() -> Result<()> {
     init_tracing();
 
-    let events: Arc<Mutex<VecDeque<app::Event>>> = Default::default();
-    let app = app::app(events.clone())?; // clone Arc, not data
+    let (sender, receiver) = channel::<app::Event>(32);
+    let app = app::app(sender)?;
     let listener = TcpListener::bind("0.0.0.0:3000").await?;
 
     let mut set: JoinSet<Result<()>> = JoinSet::new();
     set.spawn(axum::serve(listener, app).into_future().err_into());
-    set.spawn(runner::runner(events));
+    set.spawn(runner::runner(receiver));
     while let Some(res) = set.join_next().await {
         let _ = res?;
     }

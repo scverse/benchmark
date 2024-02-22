@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
-use futures::lock::Mutex;
-use std::{collections::VecDeque, sync::Arc};
+use futures::{channel::mpsc::Sender, SinkExt};
+use std::sync::Arc;
 
 use axum::{
     extract::{FromRef, State},
@@ -25,13 +25,12 @@ pub(crate) enum Event {
 #[derive(Debug, Clone)]
 struct AppState {
     token: GithubToken,
-    // TODO: limit queue size?
-    events: Arc<Mutex<VecDeque<Event>>>,
+    sender: Sender<Event>,
 }
 
 impl AppState {
-    fn new(token: GithubToken, events: Arc<Mutex<VecDeque<Event>>>) -> Self {
-        Self { token, events }
+    fn new(token: GithubToken, sender: Sender<Event>) -> Self {
+        Self { token, sender }
     }
 }
 
@@ -43,32 +42,45 @@ impl FromRef<AppState> for GithubToken {
 
 async fn handle(
     State(state): State<AppState>,
-    GithubEvent(ref e): GithubEvent<Event>,
+    GithubEvent(event): GithubEvent<Event>,
 ) -> impl IntoResponse {
-    match e {
-        Event::Enqueue { repo, branch, .. } => {
-            match octocrab::instance()
-                .repos(ORG, repo)
-                .get_ref(&Reference::Branch(branch.to_owned()))
-                .await
-            {
-                Ok(_) => {
-                    state.events.lock().await.push_back(e.clone());
-                    Ok("enqueued".to_string())
-                }
-                Err(_) => Err((
-                    StatusCode::BAD_REQUEST,
-                    format!("Error: {branch} is not a branch in {repo}."),
-                )),
-            }
-        }
+    match event {
+        Event::Enqueue { repo, branch, .. } => handle_enqueue(repo, branch, state).await,
     }
 }
 
-pub(crate) fn app(events: Arc<Mutex<VecDeque<Event>>>) -> Result<Router> {
+async fn handle_enqueue(
+    repo: String,
+    branch: String,
+    mut state: AppState,
+) -> std::prelude::v1::Result<String, (StatusCode, String)> {
+    match octocrab::instance()
+        .repos(ORG, &repo)
+        .get_ref(&Reference::Branch(branch.to_owned()))
+        .await
+    {
+        Ok(_) => state
+            .sender
+            .send(Event::Enqueue { repo, branch })
+            .await
+            .map(|()| "enqueued".to_owned())
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Error: Failed to send event".to_owned(),
+                )
+            }),
+        Err(_) => Err((
+            StatusCode::BAD_REQUEST,
+            format!("Error: {branch} is not a branch in {repo}."),
+        )),
+    }
+}
+
+pub(crate) fn app(sender: Sender<Event>) -> Result<Router> {
     let token = std::env::var("SECRET_TOKEN")
         .context("Requires the SECRET_TOKEN env variable to be set.")?;
-    let state = AppState::new(GithubToken(Arc::new(token)), events);
+    let state = AppState::new(GithubToken(Arc::new(token)), sender);
 
     Ok(Router::new()
         .route("/", post(handle))
