@@ -6,6 +6,7 @@ use tokio::task::JoinSet;
 use tokio::net::TcpListener;
 
 mod app;
+mod event;
 mod git;
 mod runner;
 
@@ -13,7 +14,7 @@ mod runner;
 async fn main() -> Result<()> {
     init_tracing();
 
-    let (sender, receiver) = channel::<app::Event>(32);
+    let (sender, receiver) = channel::<event::Event>(32);
     let app = app::app(sender)?;
     let listener = TcpListener::bind("0.0.0.0:3000").await?;
 

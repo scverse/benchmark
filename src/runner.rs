@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use futures::{channel::mpsc::Receiver, StreamExt};
 use tokio::process::Command;
 
-use crate::app::{Enqueue, Event};
+use crate::event::{Enqueue, Event};
 use crate::git::sync_repo;
 
 pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
