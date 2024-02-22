@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use futures::{channel::mpsc::Sender, SinkExt};
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 use axum::{
     extract::{FromRef, State},
@@ -19,7 +19,26 @@ pub(crate) const ORG: &str = "scverse";
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub(crate) enum Event {
-    Enqueue { repo: String, branch: String },
+    Enqueue(Enqueue),
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct Enqueue {
+    pub repo: String,
+    pub branch: String,
+    pub run_on: Option<String>,
+}
+
+impl From<Enqueue> for Event {
+    fn from(val: Enqueue) -> Self {
+        Event::Enqueue(val)
+    }
+}
+
+impl Display for Enqueue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{ORG}/{}@{}", self.repo, self.branch)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -45,23 +64,19 @@ async fn handle(
     GithubEvent(event): GithubEvent<Event>,
 ) -> impl IntoResponse {
     match event {
-        Event::Enqueue { repo, branch, .. } => handle_enqueue(repo, branch, state).await,
+        Event::Enqueue(e) => handle_enqueue(e, state).await,
     }
 }
 
-async fn handle_enqueue(
-    repo: String,
-    branch: String,
-    mut state: AppState,
-) -> std::prelude::v1::Result<String, (StatusCode, String)> {
+async fn handle_enqueue(e: Enqueue, mut state: AppState) -> Result<String, (StatusCode, String)> {
     match octocrab::instance()
-        .repos(ORG, &repo)
-        .get_ref(&Reference::Branch(branch.to_owned()))
+        .repos(ORG, &e.repo)
+        .get_ref(&Reference::Branch(e.branch.to_owned()))
         .await
     {
         Ok(_) => state
             .sender
-            .send(Event::Enqueue { repo, branch })
+            .send(e.into())
             .await
             .map(|()| "enqueued".to_owned())
             .map_err(|_| {
@@ -72,7 +87,7 @@ async fn handle_enqueue(
             }),
         Err(_) => Err((
             StatusCode::BAD_REQUEST,
-            format!("Error: {branch} is not a branch in {repo}."),
+            format!("Error: {e} is not a valid repo/branch"),
         )),
     }
 }
