@@ -19,12 +19,22 @@ pub(crate) async fn sync_repo_and_run(
 }
 
 async fn run_benchmark(repo: git2::Repository, on: Option<&str>) -> Result<()> {
-    let wd = repo.workdir().context("no workdir")?;
+    let wd = {
+        let wd = repo.workdir().context("no workdir")?;
+        if wd.join("benchmarks").join("asv.conf.json").is_file() {
+            wd.join("benchmarks")
+        } else {
+            wd.to_path_buf()
+        }
+    };
+
+    tracing::info!("Running asv in {}", wd.display());
     let result = Command::new("asv")
         .arg("run")
         .pipe_map(on, |cmd, run_on| cmd.arg(run_on))
         .current_dir(wd)
-        .spawn()?
+        .spawn()
+        .context("failed to spawn asv command")?
         .wait()
         .await?;
 

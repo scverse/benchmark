@@ -17,6 +17,7 @@ pub(crate) fn sync_repo(repo: &str, branch: Option<&str>) -> Result<git2::Reposi
         // fetch from remote
         let branch = {
             let mut remote = repo.find_remote("origin")?;
+            remote.connect(git2::Direction::Fetch)?;
             let branch =
                 branch.map_or_else(|| get_default_branch(&remote), |b| Ok(b.to_owned()))?;
             remote.fetch(&[&branch], None, None)?;
