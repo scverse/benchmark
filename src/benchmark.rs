@@ -12,7 +12,7 @@ pub(crate) async fn sync_repo_and_run(
         run_on,
     }: RunBenchmark,
 ) -> Result<()> {
-    let repo = tokio::task::spawn_blocking(move || sync_repo(&repo, &branch)).await??;
+    let repo = tokio::task::spawn_blocking(move || sync_repo(&repo, branch.as_deref())).await??;
     tracing::info!("Synced repo to {:?}", repo.path());
     run_benchmark(repo, run_on.as_deref()).await?;
     Ok(())

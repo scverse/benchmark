@@ -46,12 +46,17 @@ async fn handle_enqueue(
     req: RunBenchmark,
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
-    match octocrab::instance()
-        .repos(ORG, &req.repo)
-        .get_ref(&Reference::Branch(req.branch.to_owned()))
-        .await
-    {
-        Ok(_) => state
+    let branch_ok = if let Some(branch) = &req.branch {
+        octocrab::instance()
+            .repos(ORG, &req.repo)
+            .get_ref(&Reference::Branch(branch.to_owned()))
+            .await
+            .is_ok()
+    } else {
+        true
+    };
+    if branch_ok {
+        state
             .sender
             .send(req.into())
             .await
@@ -61,11 +66,12 @@ async fn handle_enqueue(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Error: Failed to send event".to_owned(),
                 )
-            }),
-        Err(_) => Err((
+            })
+    } else {
+        Err((
             StatusCode::BAD_REQUEST,
             format!("Error: {req} is not a valid repo/branch"),
-        )),
+        ))
     }
 }
 
