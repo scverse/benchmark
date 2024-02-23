@@ -17,6 +17,9 @@ async fn main() -> Result<()> {
         cli::Commands::Serve(args) => {
             server::serve(args).await?;
         }
+        cli::Commands::Run(args) => {
+            benchmark::sync_repo_and_run(args).await?;
+        }
     }
     Ok(())
 }

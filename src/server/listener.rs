@@ -13,7 +13,7 @@ use axum_github_webhook_extract::{GithubEvent, GithubToken};
 use octocrab::params::repos::Reference;
 use tower_http::trace::TraceLayer;
 
-use crate::event::{Enqueue, Event, ORG};
+use crate::event::{Event, RunBenchmark, ORG};
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -42,15 +42,18 @@ async fn handle(
     }
 }
 
-async fn handle_enqueue(e: Enqueue, mut state: AppState) -> Result<String, (StatusCode, String)> {
+async fn handle_enqueue(
+    req: RunBenchmark,
+    mut state: AppState,
+) -> Result<String, (StatusCode, String)> {
     match octocrab::instance()
-        .repos(ORG, &e.repo)
-        .get_ref(&Reference::Branch(e.branch.to_owned()))
+        .repos(ORG, &req.repo)
+        .get_ref(&Reference::Branch(req.branch.to_owned()))
         .await
     {
         Ok(_) => state
             .sender
-            .send(e.into())
+            .send(req.into())
             .await
             .map(|()| "enqueued".to_owned())
             .map_err(|_| {
@@ -61,7 +64,7 @@ async fn handle_enqueue(e: Enqueue, mut state: AppState) -> Result<String, (Stat
             }),
         Err(_) => Err((
             StatusCode::BAD_REQUEST,
-            format!("Error: {e} is not a valid repo/branch"),
+            format!("Error: {req} is not a valid repo/branch"),
         )),
     }
 }

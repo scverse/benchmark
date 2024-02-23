@@ -1,5 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 
+use crate::event::RunBenchmark;
+
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
@@ -12,6 +14,8 @@ pub(crate) struct Cli {
 pub(crate) enum Commands {
     /// Start web hook server
     Serve(ServeArgs),
+    /// Run a single benchmark
+    Run(RunBenchmark),
 }
 
 #[derive(Args)]
