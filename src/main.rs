@@ -1,29 +1,16 @@
 use anyhow::Result;
-use futures::{channel::mpsc::channel, TryFutureExt};
-use std::future::IntoFuture;
-use tokio::net::TcpListener;
-use tokio::task::JoinSet;
 
-mod app;
+mod benchmark;
 mod event;
-mod git;
-mod runner;
+mod repo_cache;
+mod server;
 mod utils;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     init_tracing();
 
-    let (sender, receiver) = channel::<event::Event>(32);
-    let app = app::app(sender)?;
-    let listener = TcpListener::bind("0.0.0.0:3000").await?;
-
-    let mut set: JoinSet<Result<()>> = JoinSet::new();
-    set.spawn(axum::serve(listener, app).into_future().err_into());
-    set.spawn(runner::runner(receiver));
-    while let Some(res) = set.join_next().await {
-        let _ = res?;
-    }
+    server::serve("0.0.0.0:3000").await?;
     Ok(())
 }
 

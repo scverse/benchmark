@@ -66,7 +66,7 @@ async fn handle_enqueue(e: Enqueue, mut state: AppState) -> Result<String, (Stat
     }
 }
 
-pub(crate) fn app(sender: Sender<Event>) -> Result<Router> {
+pub(crate) fn listen(sender: Sender<Event>) -> Result<Router> {
     let token = std::env::var("SECRET_TOKEN")
         .context("Requires the SECRET_TOKEN env variable to be set.")?;
     let state = AppState::new(GithubToken(Arc::new(token)), sender);
