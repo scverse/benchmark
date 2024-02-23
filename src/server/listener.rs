@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use futures::{channel::mpsc::Sender, SinkExt};
 use std::sync::Arc;
 
@@ -66,10 +66,8 @@ async fn handle_enqueue(e: Enqueue, mut state: AppState) -> Result<String, (Stat
     }
 }
 
-pub(crate) fn listen(sender: Sender<Event>) -> Result<Router> {
-    let token = std::env::var("SECRET_TOKEN")
-        .context("Requires the SECRET_TOKEN env variable to be set.")?;
-    let state = AppState::new(GithubToken(Arc::new(token)), sender);
+pub(crate) fn listen(sender: Sender<Event>, token: &str) -> Result<Router> {
+    let state = AppState::new(GithubToken(Arc::new(token.to_owned())), sender);
 
     Ok(Router::new()
         .route("/", post(handle))
