@@ -5,13 +5,16 @@ use crate::event::RunBenchmark;
 use crate::repo_cache::sync_repo;
 use crate::utils::PipeMap;
 
-pub(crate) async fn sync_repo_and_run(req: RunBenchmark) -> Result<()> {
-    tracing::info!("Handling request for {req} on {:?}", req.run_on);
-    let (repo, req) =
-        tokio::task::spawn_blocking(move || sync_repo(&req.repo, &req.branch).map(|r| (r, req)))
-            .await??;
+pub(crate) async fn sync_repo_and_run(
+    RunBenchmark {
+        repo,
+        branch,
+        run_on,
+    }: RunBenchmark,
+) -> Result<()> {
+    let repo = tokio::task::spawn_blocking(move || sync_repo(&repo, &branch)).await??;
     tracing::info!("Synced repo to {:?}", repo.path());
-    run_benchmark(repo, req.run_on.as_deref()).await?;
+    run_benchmark(repo, run_on.as_deref()).await?;
     Ok(())
 }
 

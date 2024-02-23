@@ -8,7 +8,10 @@ pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
     // loop runs until sender disconnects
     while let Some(event) = receiver.next().await {
         match event {
-            Event::Enqueue(e) => sync_repo_and_run(e).await?,
+            Event::Enqueue(req) => {
+                tracing::info!("Handling request for {req} on {:?}", req.run_on);
+                sync_repo_and_run(req).await?
+            }
         }
     }
     Ok(())
