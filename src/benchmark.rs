@@ -32,12 +32,12 @@ async fn run_benchmark(repo: git2::Repository, on: Option<&str>) -> Result<()> {
     let result = Command::new("asv")
         .arg("run")
         .pipe_map(on, |cmd, run_on| cmd.arg(run_on))
-        .current_dir(wd)
+        .current_dir(&wd)
         .spawn()
-        .context("failed to spawn asv command")?
+        .context("failed to spawn `asv run`")?
         .wait()
         .await?;
-
     tracing::info!("asv exited with {result}");
+
     Ok(())
 }

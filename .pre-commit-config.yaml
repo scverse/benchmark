@@ -10,8 +10,10 @@ repos:
   rev: '0.9.1rc1'
   hooks:
   - id: taplo
-- repo: https://github.com/backplane/pre-commit-rust-hooks
-  rev: v1.1.0
+- repo: local
   hooks:
-  - id: fmt
-  - id: clippy
+  - id: cargo-fmt
+    name: Rust formatter
+    language: rust
+    entry: cargo fmt --
+    types: [rust]
