@@ -2,6 +2,9 @@ use clap::Args;
 use serde::Deserialize;
 use std::fmt::Display;
 
+mod github;
+
+pub(crate) use github::{PullRequestEvent, PullRequestEventAction};
 pub(crate) const ORG: &str = "scverse";
 
 #[derive(Debug, Clone, Deserialize)]

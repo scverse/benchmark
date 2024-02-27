@@ -13,7 +13,7 @@ use axum_github_webhook_extract::{GithubEvent, GithubToken};
 use octocrab::params::repos::Reference;
 use tower_http::trace::TraceLayer;
 
-use crate::event::{Event, RunBenchmark, ORG};
+use crate::event::{Event, PullRequestEvent, PullRequestEventAction, RunBenchmark, ORG};
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -35,10 +35,18 @@ impl FromRef<AppState> for GithubToken {
 
 async fn handle(
     State(state): State<AppState>,
-    GithubEvent(event): GithubEvent<Event>,
+    GithubEvent(event): GithubEvent<PullRequestEvent>,
 ) -> impl IntoResponse {
-    match event {
-        Event::Enqueue(e) => handle_enqueue(e, state).await,
+    match event.action {
+        PullRequestEventAction::Synchronize(sync) => {
+            // TODO: skip if not labelled
+            let e = RunBenchmark {
+                repo: ORG.to_owned(),
+                branch: None,
+                run_on: format!("{}..{}", sync.before, sync.after).into(),
+            };
+            handle_enqueue(e, state).await
+        }
     }
 }
 

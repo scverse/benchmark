@@ -227,6 +227,7 @@ dependencies = [
  "lazy_static",
  "octocrab",
  "serde",
+ "serde_json",
  "tap",
  "tokio",
  "tower-http",
