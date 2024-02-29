@@ -1,6 +1,6 @@
 #![warn(clippy::pedantic)]
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 
 mod benchmark;
@@ -23,8 +23,15 @@ async fn main() -> Result<()> {
         }
         cli::Commands::Run(args) => {
             let wd = benchmark::sync_repo_and_run(args.clone()).await?;
+            // if exactly two are specified, show a comparison
             if let [before, after] = args.run_on.as_slice() {
-                benchmark::compare(&wd, before, after).await?;
+                benchmark::asv_compare_command(&wd, before, after)
+                    .spawn()?
+                    .wait()
+                    .await?
+                    .success()
+                    .then_some(())
+                    .ok_or_else(|| anyhow!("asv compare failed"))?;
             }
         }
     }

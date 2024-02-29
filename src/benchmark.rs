@@ -31,17 +31,10 @@ pub(crate) fn asv_command(wd: &Path) -> Command {
     command
 }
 
-pub(crate) async fn compare(wd: &Path, left: &str, right: &str) -> Result<()> {
-    let status = asv_command(wd)
-        .args(["compare", "--only-changed", left, right])
-        .spawn()?
-        .wait()
-        .await?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(anyhow::anyhow!("asv compare failed"))
-    }
+pub(crate) fn asv_compare_command(wd: &Path, left: &str, right: &str) -> Command {
+    let mut command = asv_command(wd);
+    command.args(["compare", "--only-changed", left, right]);
+    command
 }
 
 async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Result<PathBuf> {
