@@ -30,7 +30,8 @@ pub(crate) fn sync_repo(repo: &str, branch: Option<&str>) -> Result<git2::Reposi
             // switch to local branch
             repo.set_head(
                 local_branch
-                    .name()?
+                    .get()
+                    .name()
                     .context("ref name is not valid UTF-8")?,
             )?;
             repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
