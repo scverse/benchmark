@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use anyhow::{Context, Result};
@@ -14,14 +15,20 @@ pub(crate) async fn sync_repo_and_run(
         branch,
         run_on,
     }: RunBenchmark,
-) -> Result<()> {
+) -> Result<PathBuf> {
     let repo = tokio::task::spawn_blocking(move || sync_repo(&repo, branch.as_deref())).await??;
     tracing::info!("Synced repo to {:?}", repo.path());
-    run_benchmark(repo, &run_on[..]).await?;
-    Ok(())
+    let wd = run_benchmark(repo, &run_on[..]).await?;
+    Ok(wd)
 }
 
-async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Result<()> {
+pub(crate) fn asv_command(wd: &Path) -> Command {
+    let mut command = Command::new("asv");
+    command.current_dir(wd);
+    command
+}
+
+async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Result<PathBuf> {
     let wd = {
         let wd = repo.workdir().context("no workdir")?;
         if wd.join("benchmarks").join("asv.conf.json").is_file() {
@@ -32,8 +39,8 @@ async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Resu
     };
 
     tracing::info!("Running asv in {}", wd.display());
-    let mut command = Command::new("asv");
-    command.current_dir(&wd).arg("run");
+    let mut command = asv_command(&wd);
+    command.arg("run").arg("--skip-existing-commits");
     let mut child = if on.is_empty() {
         command.spawn().context("failed to spawn `asv run`")?
     } else {
@@ -50,5 +57,5 @@ async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Resu
     let result = child.wait().await?;
     tracing::info!("asv exited with {result}");
 
-    Ok(())
+    Ok(wd)
 }

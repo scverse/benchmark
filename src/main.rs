@@ -20,7 +20,15 @@ async fn main() -> Result<()> {
             server::serve(args).await?;
         }
         cli::Commands::Run(args) => {
-            benchmark::sync_repo_and_run(args).await?;
+            let wd = benchmark::sync_repo_and_run(args.clone()).await?;
+            if args.run_on.len() == 2 {
+                benchmark::asv_command(&wd)
+                    .args(["compare", "--only-changed"])
+                    .args(&args.run_on)
+                    .spawn()?
+                    .wait()
+                    .await?;
+            }
         }
     }
     Ok(())

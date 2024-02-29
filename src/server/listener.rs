@@ -43,7 +43,7 @@ async fn handle(
             let e = RunBenchmark {
                 repo: event.repository.name,
                 branch: None,
-                run_on: vec![sync.before, sync.after],
+                run_on: vec![event.pull_request.base.sha, sync.after],
             };
             handle_enqueue(e, state).await
         }

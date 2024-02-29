@@ -10,7 +10,7 @@ pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
         match event {
             Event::Enqueue(req) => {
                 tracing::info!("Handling request for {req} on {:?}", req.run_on);
-                sync_repo_and_run(req).await?
+                sync_repo_and_run(req).await?;
             }
         }
     }
