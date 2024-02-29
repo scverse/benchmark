@@ -91,3 +91,61 @@ pub(crate) fn listen(sender: Sender<Event>, token: &str) -> Result<Router> {
         .layer(TraceLayer::new_for_http())
         .with_state(state))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{str::FromStr, sync::Arc};
+
+    use assert_json_diff::assert_json_eq;
+    use axum::{
+        body::Body, extract::Request, http::StatusCode, response::IntoResponse, routing::post,
+        Router,
+    };
+    use axum_github_webhook_extract::{GithubEvent, GithubToken};
+    use hmac_sha256::HMAC;
+    use http_body_util::BodyExt;
+    use serde_json::json;
+    use tower::util::ServiceExt;
+
+    use crate::event::PullRequestEvent;
+
+    const TEST_TOKEN: &str = "It's a Secret to Everybody";
+
+    async fn handle_test(GithubEvent(event): GithubEvent<PullRequestEvent>) -> impl IntoResponse {
+        serde_json::to_string(&event.action).unwrap()
+    }
+
+    fn app() -> Router {
+        Router::new()
+            .route("/", post(handle_test))
+            .with_state(GithubToken(Arc::new(TEST_TOKEN.to_owned())))
+    }
+
+    async fn body_string(body: Body) -> String {
+        String::from_utf8_lossy(&body.collect().await.unwrap().to_bytes()).into_owned()
+    }
+
+    #[tokio::test]
+    async fn signature_valid() {
+        let body = include_str!("../event/test.pr.json");
+        let mac = HMAC::mac(body, TEST_TOKEN.as_bytes());
+        let req: Request = Request::builder()
+            .method("POST")
+            .header(
+                "X-Hub-Signature-256",
+                format!("sha256={}", hex::encode(mac)),
+            )
+            .body(body.into())
+            .unwrap();
+        let res = app().oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        assert_json_eq!(
+            serde_json::Value::from_str(&body_string(res.into_body()).await).unwrap(),
+            json!({
+                "action": "synchronize",
+                "before": "cc6d6ea741ff6c35df3747a95c4869cc3ed5f84e",
+                "after": "f88f7bd4250b963752d615e491b7e676ce5eb7f0"
+            })
+        );
+    }
+}

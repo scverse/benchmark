@@ -93,6 +93,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
 
 [[package]]
+name = "assert-json-diff"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47e4f2b81832e72834d7518d8487a0396a28cc408186a2e8854c0f98011faf12"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -218,18 +228,23 @@ name = "benchmark"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "assert-json-diff",
  "axum",
  "axum-github-webhook-extract",
  "clap",
  "directories",
  "futures",
  "git2",
+ "hex",
+ "hmac-sha256",
+ "http-body-util",
  "lazy_static",
  "octocrab",
  "serde",
  "serde_json",
  "tap",
  "tokio",
+ "tower",
  "tower-http",
  "tracing",
  "tracing-subscriber",

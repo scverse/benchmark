@@ -1,5 +1,5 @@
 use octocrab::models::{orgs::Organization, pulls::PullRequest, Author, Repository};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A stripped down version of [octocrab::models::webhook_events::WebhookEvent].
 /// When used in a [axum::extract::FromRequest] extractor, it will only match PR events.
@@ -21,13 +21,13 @@ pub(crate) struct PullRequestEvent {
     pub sender: Author,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub(crate) enum PullRequestEventAction {
     Synchronize(Synchronize),
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Synchronize {
     pub before: String,
     pub after: String,
