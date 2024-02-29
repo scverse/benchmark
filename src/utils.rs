@@ -1,7 +1,6 @@
 use tap::Pipe;
 
 pub(crate) trait PipeMap: Pipe {
-    #[inline(always)]
     fn pipe_map<O>(self, option: Option<O>, func: impl FnOnce(Self, O) -> Self) -> Self
     where
         Self: Sized,
@@ -13,7 +12,6 @@ pub(crate) trait PipeMap: Pipe {
             self
         }
     }
-    #[inline(always)]
 
     fn pipe_map_ref<O>(
         &mut self,

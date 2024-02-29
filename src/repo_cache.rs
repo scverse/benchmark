@@ -26,7 +26,7 @@ pub(crate) fn sync_repo(repo: &str, branch: Option<&str>) -> Result<git2::Reposi
         {
             // get or create local branch
             let local_branch =
-                sync_local_branch(&repo, &branch, repo.find_reference("FETCH_HEAD")?)?;
+                sync_local_branch(&repo, &branch, &repo.find_reference("FETCH_HEAD")?)?;
             // switch to local branch
             repo.set_head(
                 local_branch
@@ -48,7 +48,7 @@ pub(crate) fn sync_repo(repo: &str, branch: Option<&str>) -> Result<git2::Reposi
 fn sync_local_branch<'repo>(
     repo: &'repo git2::Repository,
     branch: &str,
-    target_ref: git2::Reference,
+    target_ref: &git2::Reference,
 ) -> Result<git2::Branch<'repo>> {
     if let Ok(mut local_branch) = repo.find_branch(branch, git2::BranchType::Local) {
         let oid = target_ref

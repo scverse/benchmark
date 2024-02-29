@@ -1,3 +1,5 @@
+#![warn(clippy::pedantic)]
+
 use anyhow::Result;
 use clap::Parser;
 
@@ -21,13 +23,8 @@ async fn main() -> Result<()> {
         }
         cli::Commands::Run(args) => {
             let wd = benchmark::sync_repo_and_run(args.clone()).await?;
-            if args.run_on.len() == 2 {
-                benchmark::asv_command(&wd)
-                    .args(["compare", "--only-changed"])
-                    .args(&args.run_on)
-                    .spawn()?
-                    .wait()
-                    .await?;
+            if let [before, after] = args.run_on.as_slice() {
+                benchmark::compare(&wd, before, after).await?;
             }
         }
     }

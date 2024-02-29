@@ -1,3 +1,4 @@
+/// Run ASV
 use std::borrow::Borrow;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -9,6 +10,7 @@ use tokio::process::Command;
 use crate::event::RunBenchmark;
 use crate::repo_cache::sync_repo;
 
+/// Sync repo to match remote’s branch, and run ASV afterwards.
 pub(crate) async fn sync_repo_and_run(
     RunBenchmark {
         repo,
@@ -22,10 +24,24 @@ pub(crate) async fn sync_repo_and_run(
     Ok(wd)
 }
 
+/// Create an `asv` command in the working directory
 pub(crate) fn asv_command(wd: &Path) -> Command {
     let mut command = Command::new("asv");
     command.current_dir(wd);
     command
+}
+
+pub(crate) async fn compare(wd: &Path, left: &str, right: &str) -> Result<()> {
+    let status = asv_command(wd)
+        .args(["compare", "--only-changed", left, right])
+        .spawn()?
+        .wait()
+        .await?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!("asv compare failed"))
+    }
 }
 
 async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Result<PathBuf> {

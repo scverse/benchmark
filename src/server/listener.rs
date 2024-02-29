@@ -83,13 +83,13 @@ async fn handle_enqueue(
     }
 }
 
-pub(crate) fn listen(sender: Sender<Event>, token: &str) -> Result<Router> {
+pub(crate) fn listen(sender: Sender<Event>, token: &str) -> axum::Router {
     let state = AppState::new(GithubToken(Arc::new(token.to_owned())), sender);
 
-    Ok(Router::new()
+    Router::new()
         .route("/", post(handle))
         .layer(TraceLayer::new_for_http())
-        .with_state(state))
+        .with_state(state)
 }
 
 #[cfg(test)]
@@ -143,8 +143,8 @@ mod tests {
 
     #[tokio::test]
     async fn valid_pr_event() {
-        let req = make_request(PR, true);
-        let res = app().oneshot(req).await.unwrap();
+        let request = make_request(PR, true);
+        let res = app().oneshot(request).await.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         assert_json_eq!(
             serde_json::Value::from_str(&body_string(res.into_body()).await).unwrap(),
@@ -158,16 +158,16 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_signature() {
-        let req = make_request(PR, false);
-        let res = app().oneshot(req).await.unwrap();
+        let request = make_request(PR, false);
+        let res = app().oneshot(request).await.unwrap();
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
         assert_eq!(&body_string(res.into_body()).await, "signature mismatch");
     }
 
     #[tokio::test]
     async fn invalid_event_payload() {
-        let req = make_request("{}", true);
-        let res = app().oneshot(req).await.unwrap();
+        let request = make_request("{}", true);
+        let res = app().oneshot(request).await.unwrap();
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
             &body_string(res.into_body()).await,
