@@ -121,22 +121,30 @@ mod tests {
             .with_state(GithubToken(Arc::new(TEST_TOKEN.to_owned())))
     }
 
-    async fn body_string(body: Body) -> String {
-        String::from_utf8_lossy(&body.collect().await.unwrap().to_bytes()).into_owned()
-    }
-
-    #[tokio::test]
-    async fn signature_valid() {
-        let body = include_str!("../event/test.pr.json");
-        let mac = HMAC::mac(body, TEST_TOKEN.as_bytes());
-        let req: Request = Request::builder()
+    fn make_request<B: Into<Body> + AsRef<[u8]>>(body: B, valid: bool) -> Request {
+        let mac = if valid {
+            HMAC::mac(&body, TEST_TOKEN.as_bytes())
+        } else {
+            [0; 32]
+        };
+        Request::builder()
             .method("POST")
             .header(
                 "X-Hub-Signature-256",
                 format!("sha256={}", hex::encode(mac)),
             )
             .body(body.into())
-            .unwrap();
+            .unwrap()
+    }
+
+    async fn body_string(body: Body) -> String {
+        String::from_utf8_lossy(&body.collect().await.unwrap().to_bytes()).into_owned()
+    }
+
+    #[tokio::test]
+    async fn valid_pr_event() {
+        let body = include_str!("../event/test.pr.json");
+        let req = make_request(body, true);
         let res = app().oneshot(req).await.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         assert_json_eq!(
@@ -144,8 +152,28 @@ mod tests {
             json!({
                 "action": "synchronize",
                 "before": "cc6d6ea741ff6c35df3747a95c4869cc3ed5f84e",
-                "after": "f88f7bd4250b963752d615e491b7e676ce5eb7f0"
+                "after": "f88f7bd4250b963752d615e491b7e676ce5eb7f0",
             })
+        );
+    }
+
+    #[tokio::test]
+    async fn invalid_signature() {
+        let body = include_str!("../event/test.pr.json");
+        let req = make_request(body, false);
+        let res = app().oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(&body_string(res.into_body()).await, "signature mismatch");
+    }
+
+    #[tokio::test]
+    async fn invalid_event_payload() {
+        let req = make_request("{}", true);
+        let res = app().oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            &body_string(res.into_body()).await,
+            "missing field `number` at line 1 column 2"
         );
     }
 }
