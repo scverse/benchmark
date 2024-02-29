@@ -41,9 +41,9 @@ async fn handle(
         PullRequestEventAction::Synchronize(sync) => {
             // TODO: skip if not labelled
             let e = RunBenchmark {
-                repo: ORG.to_owned(),
+                repo: event.repository.name,
                 branch: None,
-                run_on: format!("{}..{}", sync.before, sync.after).into(),
+                run_on: vec![sync.before, sync.after],
             };
             handle_enqueue(e, state).await
         }

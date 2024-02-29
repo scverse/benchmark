@@ -1,8 +1,9 @@
 use octocrab::models::{orgs::Organization, pulls::PullRequest, Author, Repository};
 use serde::Deserialize;
 
-// TODO: use octocrab::models::webhook_events::WebhookEvent instead?
-
+/// A stripped down version of [octocrab::models::webhook_events::WebhookEvent].
+/// When used in a [axum::extract::FromRequest] extractor, it will only match PR events.
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct PullRequestEvent {
     /// The action this event represents.

@@ -1,9 +1,12 @@
+use std::borrow::Borrow;
+use std::process::Stdio;
+
 use anyhow::{Context, Result};
+use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 use crate::event::RunBenchmark;
 use crate::repo_cache::sync_repo;
-use crate::utils::PipeMap;
 
 pub(crate) async fn sync_repo_and_run(
     RunBenchmark {
@@ -14,11 +17,11 @@ pub(crate) async fn sync_repo_and_run(
 ) -> Result<()> {
     let repo = tokio::task::spawn_blocking(move || sync_repo(&repo, branch.as_deref())).await??;
     tracing::info!("Synced repo to {:?}", repo.path());
-    run_benchmark(repo, run_on.as_deref()).await?;
+    run_benchmark(repo, &run_on[..]).await?;
     Ok(())
 }
 
-async fn run_benchmark(repo: git2::Repository, on: Option<&str>) -> Result<()> {
+async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Result<()> {
     let wd = {
         let wd = repo.workdir().context("no workdir")?;
         if wd.join("benchmarks").join("asv.conf.json").is_file() {
@@ -29,14 +32,22 @@ async fn run_benchmark(repo: git2::Repository, on: Option<&str>) -> Result<()> {
     };
 
     tracing::info!("Running asv in {}", wd.display());
-    let result = Command::new("asv")
-        .arg("run")
-        .pipe_map(on, |cmd, run_on| cmd.arg(run_on))
-        .current_dir(&wd)
-        .spawn()
-        .context("failed to spawn `asv run`")?
-        .wait()
-        .await?;
+    let mut command = Command::new("asv");
+    command.current_dir(&wd).arg("run");
+    let mut child = if on.is_empty() {
+        command.spawn().context("failed to spawn `asv run`")?
+    } else {
+        let mut child = command
+            .stdin(Stdio::piped())
+            .arg("HASHFILE:-")
+            .spawn()
+            .context("failed to spawn `asv run HASHFILE:-`")?;
+        let mut stdin = child.stdin.take().context("no stdin")?;
+        stdin.write_all(on.join("\n").as_bytes()).await?;
+        stdin.flush().await?;
+        child
+    };
+    let result = child.wait().await?;
     tracing::info!("asv exited with {result}");
 
     Ok(())

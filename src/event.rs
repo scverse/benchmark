@@ -22,7 +22,7 @@ pub(crate) struct RunBenchmark {
     pub branch: Option<String>,
     /// Which refs in the target repository to run benchmarks on
     #[arg(long)]
-    pub run_on: Option<String>,
+    pub run_on: Vec<String>,
 }
 
 impl From<RunBenchmark> for Event {
