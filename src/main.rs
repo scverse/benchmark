@@ -4,6 +4,8 @@ use clap::Parser;
 mod benchmark;
 mod cli;
 mod event;
+#[cfg(test)]
+mod fixtures;
 mod repo_cache;
 mod server;
 mod utils;

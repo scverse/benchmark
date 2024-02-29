@@ -107,7 +107,7 @@ mod tests {
     use serde_json::json;
     use tower::util::ServiceExt;
 
-    use crate::event::PullRequestEvent;
+    use crate::{event::PullRequestEvent, fixtures::PR};
 
     const TEST_TOKEN: &str = "It's a Secret to Everybody";
 
@@ -143,8 +143,7 @@ mod tests {
 
     #[tokio::test]
     async fn valid_pr_event() {
-        let body = include_str!("../event/test.pr.json");
-        let req = make_request(body, true);
+        let req = make_request(PR, true);
         let res = app().oneshot(req).await.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         assert_json_eq!(
@@ -159,8 +158,7 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_signature() {
-        let body = include_str!("../event/test.pr.json");
-        let req = make_request(body, false);
+        let req = make_request(PR, false);
         let res = app().oneshot(req).await.unwrap();
         assert_eq!(res.status(), StatusCode::BAD_REQUEST);
         assert_eq!(&body_string(res.into_body()).await, "signature mismatch");

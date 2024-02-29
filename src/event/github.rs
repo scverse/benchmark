@@ -35,12 +35,13 @@ pub(crate) struct Synchronize {
 
 #[cfg(test)]
 mod tests {
+    use crate::fixtures::PR;
+
     use super::*;
 
     #[test]
     fn test_deserialize() {
-        let payload = include_str!("test.pr.json");
-        let event = serde_json::from_str::<PullRequestEvent>(payload).unwrap();
+        let event = serde_json::from_str::<PullRequestEvent>(PR).unwrap();
         let PullRequestEventAction::Synchronize(Synchronize { before, after }) = event.action;
         assert_eq!(before, "cc6d6ea741ff6c35df3747a95c4869cc3ed5f84e");
         assert_eq!(after, "f88f7bd4250b963752d615e491b7e676ce5eb7f0");
