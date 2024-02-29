@@ -20,8 +20,7 @@ pub(crate) struct RunBenchmark {
     /// Branch to use benchmark configuration from
     #[arg(long, short)]
     pub branch: Option<String>,
-    /// Which refs in the target repository to run benchmarks on
-    #[arg(long)]
+    /// Which refs in the target repository to run benchmarks on (default: default branch)
     pub run_on: Vec<String>,
 }
 
