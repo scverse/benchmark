@@ -9,27 +9,22 @@ use axum::{
     routing::post,
     Router,
 };
-use axum_github_webhook_extract::{GithubEvent, GithubToken};
-use octocrab::params::repos::Reference;
+use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
+use octocrab::{params::repos::Reference, Octocrab};
 use tower_http::trace::TraceLayer;
 
 use crate::event::{Event, PullRequestEvent, PullRequestEventAction, RunBenchmark, ORG};
 
 #[derive(Debug, Clone)]
 struct AppState {
-    token: GithubToken,
+    secret: GitHubSecret,
     sender: Sender<Event>,
+    github_client: Arc<Octocrab>,
 }
 
-impl AppState {
-    fn new(token: GithubToken, sender: Sender<Event>) -> Self {
-        Self { token, sender }
-    }
-}
-
-impl FromRef<AppState> for GithubToken {
-    fn from_ref(state: &AppState) -> GithubToken {
-        state.token.clone()
+impl FromRef<AppState> for GitHubSecret {
+    fn from_ref(state: &AppState) -> GitHubSecret {
+        state.secret.clone()
     }
 }
 
@@ -39,7 +34,15 @@ async fn handle(
 ) -> impl IntoResponse {
     match event.action {
         PullRequestEventAction::Synchronize(sync) => {
-            // TODO: skip if not labelled
+            if event
+                .pull_request
+                .labels
+                .iter()
+                .flatten()
+                .all(|e| e.name != "benchmark")
+            {
+                return Ok("skipped".to_owned());
+            }
             let e = RunBenchmark {
                 repo: event.repository.name,
                 branch: None,
@@ -55,7 +58,8 @@ async fn handle_enqueue(
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
     let branch_ok = if let Some(branch) = &req.branch {
-        octocrab::instance()
+        state
+            .github_client
             .repos(ORG, &req.repo)
             .get_ref(&Reference::Branch(branch.to_owned()))
             .await
@@ -83,8 +87,12 @@ async fn handle_enqueue(
     }
 }
 
-pub(crate) fn listen(sender: Sender<Event>, token: &str) -> axum::Router {
-    let state = AppState::new(GithubToken(Arc::new(token.to_owned())), sender);
+pub(crate) fn listen(sender: Sender<Event>, secret: &str) -> axum::Router {
+    let state = AppState {
+        sender,
+        secret: GitHubSecret(Arc::new(secret.to_owned())),
+        github_client: octocrab::instance(),
+    };
 
     Router::new()
         .route("/", post(handle))
@@ -101,7 +109,7 @@ mod tests {
         body::Body, extract::Request, http::StatusCode, response::IntoResponse, routing::post,
         Router,
     };
-    use axum_github_webhook_extract::{GithubEvent, GithubToken};
+    use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
     use hmac_sha256::HMAC;
     use http_body_util::BodyExt;
     use serde_json::json;
@@ -109,7 +117,7 @@ mod tests {
 
     use crate::{event::PullRequestEvent, fixtures::PR};
 
-    const TEST_TOKEN: &str = "It's a Secret to Everybody";
+    const TEST_SECRET: &str = "It's a Secret to Everybody";
 
     async fn handle_test(GithubEvent(event): GithubEvent<PullRequestEvent>) -> impl IntoResponse {
         serde_json::to_string(&event.action).unwrap()
@@ -118,12 +126,12 @@ mod tests {
     fn app() -> Router {
         Router::new()
             .route("/", post(handle_test))
-            .with_state(GithubToken(Arc::new(TEST_TOKEN.to_owned())))
+            .with_state(GitHubSecret(Arc::new(TEST_SECRET.to_owned())))
     }
 
     fn make_request<B: Into<Body> + AsRef<[u8]>>(body: B, valid: bool) -> Request {
         let mac = if valid {
-            HMAC::mac(&body, TEST_TOKEN.as_bytes())
+            HMAC::mac(&body, TEST_SECRET.as_bytes())
         } else {
             [0; 32]
         };
