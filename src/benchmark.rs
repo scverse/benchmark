@@ -14,7 +14,7 @@ use crate::repo_cache::sync_repo;
 pub(crate) async fn sync_repo_and_run(
     RunBenchmark {
         repo,
-        branch,
+        config_ref: branch,
         run_on,
     }: RunBenchmark,
 ) -> Result<PathBuf> {

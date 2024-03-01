@@ -6,7 +6,7 @@ use futures::{
 };
 use hmac_sha256::HMAC;
 use http_body_util::BodyExt;
-use octocrab::Octocrab;
+use octocrab::{models::repos::Ref, Octocrab};
 use serde_json::json;
 use std::sync::Arc;
 use tower::util::ServiceExt;
@@ -60,7 +60,7 @@ const TEST_SECRET: &str = "It's a Secret to Everybody";
 async fn setup_github_api(template: Option<ResponseTemplate>) -> MockServer {
     let mock_server = MockServer::start().await;
     if let Some(template) = template {
-        let uri = format!("/repos/{ORG}/anndata/git/ref/a-branch");
+        let uri = format!("/repos/{ORG}/anndata/git/ref/f88f7bd4250b963752d615e491b7e676ce5eb7f0");
         Mock::given(method("GET"))
             .and(path(&uri))
             .respond_with(template)
@@ -118,7 +118,7 @@ async fn should_error_on_invalid_signature() {
     let request = make_webhook_request(PR, false);
     let res = app.oneshot(request).await.unwrap();
 
-    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST, "{res:?}");
     assert_eq!(&body_string(res.into_body()).await, "signature mismatch");
     assert!(recv.next().await.is_none());
 }
@@ -129,7 +129,7 @@ async fn should_error_on_invalid_event_payload() {
     let request = make_webhook_request("{}", true);
     let res = app.oneshot(request).await.unwrap();
 
-    assert_eq!(res.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(res.status(), StatusCode::BAD_REQUEST, "{res:?}");
     assert_eq!(
         &body_string(res.into_body()).await,
         "missing field `number` at line 1 column 2"
@@ -143,14 +143,29 @@ async fn should_skip_on_no_label() {
     let request = make_webhook_request(PR, true);
     let res = app.oneshot(request).await.unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.status(), StatusCode::OK, "{res:?}");
     assert_eq!(body_string(res.into_body()).await, "skipped");
     assert!(recv.next().await.is_none());
 }
 
 #[tokio::test]
 async fn should_enqueue_valid_pr_event() {
-    let (app, mut recv) = app(None).await;
+    // expected event payload
+    let sha_base = "a4786471ee4d4e894fec150e426c3551db0f31e0";
+    let sha_after = "f88f7bd4250b963752d615e491b7e676ce5eb7f0";
+    let config_ref: Ref = serde_json::from_value(json!({
+        "ref": sha_after.to_owned(),
+        "node_id": "xyz".to_owned(),
+        "url": format!("https://api.github.com/repos/scverse/anndata/commits/{sha_after}"),
+        "object": {
+            "type": "commit",
+            "sha": sha_after.to_owned(),
+            "url": format!("https://api.github.com/repos/scverse/anndata/commits/{sha_after}"),
+        },
+    }))
+    .unwrap();
+    let template = ResponseTemplate::new(200).set_body_json(config_ref);
+    let (app, mut recv) = app(Some(template)).await;
     let mut body: PullRequestEvent = serde_json::from_str(PR).unwrap();
     // the test data has no “benchmark” label, add one:
     body.pull_request.labels.as_mut().unwrap().push(
@@ -168,16 +183,15 @@ async fn should_enqueue_valid_pr_event() {
     let request = make_webhook_request(serde_json::to_string(&body).unwrap(), true);
     let res = app.oneshot(request).await.unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK);
+    //assert_eq!(res.status(), StatusCode::OK, "{res:?}");
     assert_eq!(body_string(res.into_body()).await, "enqueued");
     let evt_expected = RunBenchmark {
         repo: "anndata".to_owned(),
-        branch: None,
+        config_ref: Some(sha_after.to_owned()),
         run_on: vec![
             // pull request base, not `before`
-            "a4786471ee4d4e894fec150e426c3551db0f31e0".to_owned(),
-            // `after`
-            "f88f7bd4250b963752d615e491b7e676ce5eb7f0".to_owned(),
+            sha_base.to_owned(),
+            sha_after.to_owned(),
         ],
     };
     assert_eq!(recv.next().await, Some(evt_expected.into()));

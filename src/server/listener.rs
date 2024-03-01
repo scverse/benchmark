@@ -45,7 +45,7 @@ async fn handle(
             }
             let e = RunBenchmark {
                 repo: event.repository.name,
-                branch: None,
+                config_ref: Some(sync.after.clone()),
                 run_on: vec![event.pull_request.base.sha, sync.after],
             };
             handle_enqueue(e, state).await
@@ -57,11 +57,11 @@ async fn handle_enqueue(
     req: RunBenchmark,
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
-    let branch_ok = if let Some(branch) = &req.branch {
+    let branch_ok = if let Some(config_ref) = &req.config_ref {
         state
             .github_client
             .repos(ORG, &req.repo)
-            .get_ref(&Reference::Branch(branch.to_owned()))
+            .get_ref(&Reference::Commit(config_ref.to_owned()))
             .await
             .is_ok()
     } else {

@@ -19,7 +19,7 @@ pub(crate) struct RunBenchmark {
     pub repo: String,
     /// Branch to use benchmark configuration from
     #[arg(long, short)]
-    pub branch: Option<String>,
+    pub config_ref: Option<String>,
     /// Which refs in the target repository to run benchmarks on (default: default branch)
     pub run_on: Vec<String>,
 }
@@ -33,7 +33,7 @@ impl From<RunBenchmark> for Event {
 impl Display for RunBenchmark {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{ORG}/{}", self.repo)?;
-        if let Some(branch) = &self.branch {
+        if let Some(branch) = &self.config_ref {
             write!(f, "@{branch}")?;
         }
         Ok(())
