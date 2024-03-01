@@ -17,7 +17,7 @@ pub(crate) enum Event {
 pub(crate) struct RunBenchmark {
     /// Repository containing ASV benchmarks (in scverse org)
     pub repo: String,
-    /// Branch to use benchmark configuration from
+    /// Branch or commit to use benchmark configuration from
     #[arg(long, short)]
     pub config_ref: Option<String>,
     /// Which refs in the target repository to run benchmarks on (default: default branch)
@@ -33,8 +33,8 @@ impl From<RunBenchmark> for Event {
 impl Display for RunBenchmark {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{ORG}/{}", self.repo)?;
-        if let Some(branch) = &self.config_ref {
-            write!(f, "@{branch}")?;
+        if let Some(config_ref) = &self.config_ref {
+            write!(f, "@{config_ref}")?;
         }
         Ok(())
     }

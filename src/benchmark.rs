@@ -11,14 +11,15 @@ use crate::event::RunBenchmark;
 use crate::repo_cache::sync_repo;
 
 /// Sync repo to match remote’s branch, and run ASV afterwards.
-pub(crate) async fn sync_repo_and_run(
-    RunBenchmark {
+pub(crate) async fn sync_repo_and_run(req: &RunBenchmark) -> Result<PathBuf> {
+    // TODO: figure out how to spawn without cloning?
+    let RunBenchmark {
         repo,
-        config_ref: branch,
+        config_ref,
         run_on,
-    }: RunBenchmark,
-) -> Result<PathBuf> {
-    let repo = tokio::task::spawn_blocking(move || sync_repo(&repo, branch.as_deref())).await??;
+    } = req.clone();
+    let repo =
+        tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??;
     tracing::info!("Synced repo to {:?}", repo.path());
     let wd = run_benchmark(repo, &run_on[..]).await?;
     Ok(wd)
