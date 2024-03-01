@@ -16,7 +16,8 @@ use wiremock::{
 };
 
 use crate::{
-    event::{Event, PullRequestEvent, RunBenchmark, ORG},
+    cli::RunBenchmark,
+    event::{Compare, Event, PullRequestEvent, ORG},
     fixtures::PR,
 };
 
@@ -179,7 +180,7 @@ async fn should_enqueue_valid_pr_event() {
 
     //assert_eq!(res.status(), StatusCode::OK, "{res:?}");
     assert_eq!(body_string(res.into_body()).await, "enqueued");
-    let evt_expected = RunBenchmark {
+    let run_benchmark = RunBenchmark {
         repo: "anndata".to_owned(),
         config_ref: Some(sha_after.to_owned()),
         run_on: vec![
@@ -188,5 +189,14 @@ async fn should_enqueue_valid_pr_event() {
             sha_after.to_owned(),
         ],
     };
-    assert_eq!(recv.next().await, Some(evt_expected.into()));
+    assert_eq!(
+        recv.next().await,
+        Some(
+            Compare {
+                run_benchmark,
+                pr: body.pull_request.number
+            }
+            .into()
+        )
+    );
 }

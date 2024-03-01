@@ -15,7 +15,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::{
     cli::RunBenchmark,
-    event::{Event, PullRequestEvent, PullRequestEventAction, ORG},
+    event::{Compare, Event, PullRequestEvent, PullRequestEventAction, ORG},
 };
 
 #[derive(Debug, Clone)]
@@ -46,24 +46,31 @@ async fn handle(
             {
                 return Ok("skipped".to_owned());
             }
-            let e = RunBenchmark {
+            let run_benchmark = RunBenchmark {
                 repo: event.repository.name,
                 config_ref: Some(sync.after.clone()),
                 run_on: vec![event.pull_request.base.sha, sync.after],
             };
-            handle_enqueue(e, state).await
+            handle_enqueue(
+                Compare {
+                    run_benchmark,
+                    pr: event.pull_request.number,
+                },
+                state,
+            )
+            .await
         }
     }
 }
 
 async fn handle_enqueue(
-    req: RunBenchmark,
+    event: Compare,
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
-    let branch_ok = if let Some(config_ref) = &req.config_ref {
+    let branch_ok = if let Some(config_ref) = &event.run_benchmark.config_ref {
         state
             .github_client
-            .repos(ORG, &req.repo)
+            .repos(ORG, &event.run_benchmark.repo)
             // TODO: check if this needs to be done differently: https://github.com/github/docs/issues/31914
             .get_ref(&Reference::Commit(config_ref.to_owned()))
             .await
@@ -74,7 +81,7 @@ async fn handle_enqueue(
     if branch_ok {
         state
             .sender
-            .send(req.into())
+            .send(event.into())
             .await
             .map(|()| "enqueued".to_owned())
             .map_err(|_| {
@@ -86,7 +93,7 @@ async fn handle_enqueue(
     } else {
         Err((
             StatusCode::BAD_REQUEST,
-            format!("Error: {req} is not a valid repo/branch"),
+            format!("Error: {} is not a valid repo/branch", event.run_benchmark),
         ))
     }
 }

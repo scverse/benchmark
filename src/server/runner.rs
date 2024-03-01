@@ -5,26 +5,26 @@ use chrono::Utc;
 use futures::{channel::mpsc::Receiver, StreamExt};
 
 use crate::benchmark::{asv_compare_command, sync_repo_and_run};
-use crate::cli::RunBenchmark;
-use crate::event::Event;
+use crate::event::{Compare, Event, ORG};
 
 pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
     // loop runs until sender disconnects
     while let Some(event) = receiver.next().await {
         // TODO: don’t exit loop on error
         match event {
-            Event::Enqueue(ref req) => {
-                tracing::info!("Handling request for {req} on {:?}", req.run_on);
-                let wd = sync_repo_and_run(req).await?;
-                compare(&wd, req).await?;
+            Event::Compare(ref cmp) => {
+                tracing::info!("Comparing {:?} for PR {}", cmp.run_benchmark.run_on, cmp.pr);
+                let wd = sync_repo_and_run(&cmp.run_benchmark).await?;
+                compare(&wd, cmp).await?;
             }
         }
     }
     Ok(())
 }
 
-async fn compare(wd: &Path, req: &RunBenchmark) -> Result<()> {
-    let [before, after] = req.run_on.as_slice() else {
+async fn compare(wd: &Path, cmp: &Compare) -> Result<()> {
+    // TODO: distinguish on type level
+    let [before, after] = cmp.run_benchmark.run_on.as_slice() else {
         unreachable!()
     };
     let output = asv_compare_command(wd, before, after)
@@ -35,8 +35,22 @@ async fn compare(wd: &Path, req: &RunBenchmark) -> Result<()> {
         return Err(anyhow::anyhow!("asv compare exited with {}", output.status));
     }
     let table_md = String::from_utf8(output.stdout)?;
-    let comment_md = make_comment(&req.repo, after, &table_md);
-    update_comment(&comment_md).await?;
+    update_comment(cmp, &table_md).await?;
+    Ok(())
+}
+
+async fn update_comment(cmp: &Compare, markdown: &str) -> Result<()> {
+    // TODO: as above
+    let [_before, after] = cmp.run_benchmark.run_on.as_slice() else {
+        unreachable!()
+    };
+    let markdown = make_comment(&cmp.run_benchmark.repo, after, markdown);
+    tracing::info!("Updating comment: {markdown}");
+    // TODO: update instead of spamming
+    octocrab::instance()
+        .issues(ORG, &cmp.run_benchmark.repo)
+        .create_comment(cmp.pr, markdown)
+        .await?;
     Ok(())
 }
 
@@ -57,10 +71,4 @@ Latest commit: <https://github.com/scverse/{repo}/commit/{after}>  \n\
 Last changed: <time datetime="{t_iso}">{t_human}</time>
 "#,
     )
-}
-
-async fn update_comment(markdown: &str) -> Result<()> {
-    // octocrab::instance();
-    tracing::info!("Updating comment: {markdown}");
-    todo!();
 }
