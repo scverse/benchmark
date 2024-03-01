@@ -189,14 +189,9 @@ async fn should_enqueue_valid_pr_event() {
             sha_after.to_owned(),
         ],
     };
-    assert_eq!(
-        recv.next().await,
-        Some(
-            Compare {
-                run_benchmark,
-                pr: body.pull_request.number
-            }
-            .into()
-        )
-    );
+    let evt = Compare {
+        run_benchmark,
+        pr: body.pull_request.number,
+    };
+    assert_eq!(recv.next().await, Some(evt.into()));
 }
