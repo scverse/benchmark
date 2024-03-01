@@ -7,13 +7,13 @@ mod github;
 pub(crate) use github::{PullRequestEvent, PullRequestEventAction};
 pub(crate) const ORG: &str = "scverse";
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub(crate) enum Event {
     Enqueue(RunBenchmark),
 }
 
-#[derive(Args, Debug, Clone, Deserialize)]
+#[derive(Args, Debug, Clone, Deserialize, PartialEq, Eq)]
 pub(crate) struct RunBenchmark {
     /// Repository containing ASV benchmarks (in scverse org)
     pub repo: String,

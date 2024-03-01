@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /// A stripped down version of [`octocrab::models::webhook_events::WebhookEvent`].
 /// When used in a [`axum::extract::FromRequest`] extractor, it will only match PR events.
 #[allow(dead_code)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct PullRequestEvent {
     /// The action this event represents.
     #[serde(flatten)]
