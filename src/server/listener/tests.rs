@@ -51,12 +51,6 @@ use mock_error::setup_error_handler;
 
 const TEST_SECRET: &str = "It's a Secret to Everybody";
 
-/// Use:
-/// ```
-/// let page_response = FakeSerializable(...);
-/// let template = ResponseTemplate::new(200).set_body_json(&page_response);
-/// let mock_server = setup_api(Some(template)).await;
-/// ```
 async fn setup_github_api(template: Option<ResponseTemplate>) -> MockServer {
     let mock_server = MockServer::start().await;
     if let Some(template) = template {
@@ -156,7 +150,7 @@ async fn should_enqueue_valid_pr_event() {
     let config_ref: Ref = serde_json::from_value(json!({
         "ref": sha_after.to_owned(),
         "node_id": "xyz".to_owned(),
-        "url": format!("https://api.github.com/repos/scverse/anndata/commits/{sha_after}"),
+        "url": format!("https://api.github.com/repos/scverse/anndata/ref/{sha_after}"),
         "object": {
             "type": "commit",
             "sha": sha_after.to_owned(),

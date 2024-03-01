@@ -61,6 +61,7 @@ async fn handle_enqueue(
         state
             .github_client
             .repos(ORG, &req.repo)
+            // TODO: check if this needs to be done differently: https://github.com/github/docs/issues/31914
             .get_ref(&Reference::Commit(config_ref.to_owned()))
             .await
             .is_ok()
