@@ -13,7 +13,10 @@ use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
 use octocrab::{params::repos::Reference, Octocrab};
 use tower_http::trace::TraceLayer;
 
-use crate::event::{Event, PullRequestEvent, PullRequestEventAction, RunBenchmark, ORG};
+use crate::{
+    cli::RunBenchmark,
+    event::{Event, PullRequestEvent, PullRequestEventAction, ORG},
+};
 
 #[derive(Debug, Clone)]
 struct AppState {

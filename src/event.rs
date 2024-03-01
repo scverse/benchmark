@@ -1,8 +1,8 @@
-use clap::Args;
 use serde::Deserialize;
-use std::fmt::Display;
 
 mod github;
+
+use crate::cli::RunBenchmark;
 
 pub(crate) use github::{PullRequestEvent, PullRequestEventAction};
 pub(crate) const ORG: &str = "scverse";
@@ -13,29 +13,8 @@ pub(crate) enum Event {
     Enqueue(RunBenchmark),
 }
 
-#[derive(Args, Debug, Clone, Deserialize, PartialEq, Eq)]
-pub(crate) struct RunBenchmark {
-    /// Repository containing ASV benchmarks (in scverse org)
-    pub repo: String,
-    /// Branch or commit to use benchmark configuration from
-    #[arg(long, short)]
-    pub config_ref: Option<String>,
-    /// Which refs in the target repository to run benchmarks on (default: default branch)
-    pub run_on: Vec<String>,
-}
-
 impl From<RunBenchmark> for Event {
     fn from(val: RunBenchmark) -> Self {
         Event::Enqueue(val)
-    }
-}
-
-impl Display for RunBenchmark {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{ORG}/{}", self.repo)?;
-        if let Some(config_ref) = &self.config_ref {
-            write!(f, "@{config_ref}")?;
-        }
-        Ok(())
     }
 }

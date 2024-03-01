@@ -7,7 +7,7 @@ use anyhow::{Context, Result};
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-use crate::event::RunBenchmark;
+use crate::cli::RunBenchmark;
 use crate::repo_cache::sync_repo;
 
 /// Sync repo to match remote’s branch, and run ASV afterwards.

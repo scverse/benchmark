@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
             server::serve(args).await?;
         }
         cli::Commands::Run(args) => {
-            let wd = benchmark::sync_repo_and_run(args.clone()).await?;
+            let wd = benchmark::sync_repo_and_run(&args).await?;
             // if exactly two are specified, show a comparison
             if let [before, after] = args.run_on.as_slice() {
                 benchmark::asv_compare_command(&wd, before, after)

@@ -5,7 +5,8 @@ use chrono::Utc;
 use futures::{channel::mpsc::Receiver, StreamExt};
 
 use crate::benchmark::{asv_compare_command, sync_repo_and_run};
-use crate::event::{Event, RunBenchmark};
+use crate::cli::RunBenchmark;
+use crate::event::Event;
 
 pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
     // loop runs until sender disconnects
