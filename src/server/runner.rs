@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use anyhow::Result;
 use futures::{channel::mpsc::Receiver, StreamExt};
 
@@ -15,18 +17,23 @@ pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
                 let [before, after] = req.run_on.as_slice() else {
                     unreachable!()
                 };
-                let output = asv_compare_command(&wd, before, after)
-                    .spawn()?
-                    .wait_with_output()
-                    .await?;
-                if output.status.code() != Some(0) {
-                    return Err(anyhow::anyhow!("asv compare exited with {}", output.status));
-                }
-                let x = String::from_utf8(output.stdout)?;
-                tracing::info!("asv compare output: {x}");
-                // TODO: send output to GitHub
+                compare(&wd, before, after).await?;
             }
         }
     }
+    Ok(())
+}
+
+async fn compare(wd: &Path, before: &str, after: &str) -> Result<()> {
+    let output = asv_compare_command(wd, before, after)
+        .spawn()?
+        .wait_with_output()
+        .await?;
+    if output.status.code() != Some(0) {
+        return Err(anyhow::anyhow!("asv compare exited with {}", output.status));
+    }
+    let x = String::from_utf8(output.stdout)?;
+    tracing::info!("asv compare output: {x}");
+    // TODO: send output to GitHub
     Ok(())
 }
