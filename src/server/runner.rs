@@ -5,7 +5,8 @@ use chrono::Utc;
 use futures::{channel::mpsc::Receiver, StreamExt};
 
 use crate::benchmark::{asv_compare_command, sync_repo_and_run};
-use crate::event::{Compare, Event, ORG};
+use crate::constants::{is_pr_comparison, BOT_NAME, ORG, PR_COMPARISON_MARKER};
+use crate::event::{Compare, Event};
 
 pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
     // loop runs until sender disconnects
@@ -45,12 +46,22 @@ async fn update_comment(cmp: &Compare, markdown: &str) -> Result<()> {
         unreachable!()
     };
     let markdown = make_comment(&cmp.run_benchmark.repo, after, markdown);
-    tracing::info!("Updating comment: {markdown}");
-    // TODO: update instead of spamming
-    octocrab::instance()
-        .issues(ORG, &cmp.run_benchmark.repo)
-        .create_comment(cmp.pr, markdown)
-        .await?;
+
+    let github_api = octocrab::instance();
+    let issue_api = github_api.issues(ORG, &cmp.run_benchmark.repo);
+    if let Some(comment) = issue_api
+        .list_comments(cmp.pr)
+        .send()
+        .await?
+        .into_iter()
+        .find(is_pr_comparison)
+    {
+        issue_api.update_comment(comment.id, markdown).await?;
+        tracing::info!("Updated comment at {}", comment.html_url);
+    } else {
+        let comment = issue_api.create_comment(cmp.pr, markdown).await?;
+        tracing::info!("Created comment at {}", comment.html_url);
+    }
     Ok(())
 }
 
@@ -65,6 +76,8 @@ fn make_comment(repo: &str, after: &str, markdown: &str) -> String {
     let t_human = now.to_rfc2822();
     format!(
         r#"
+{PR_COMPARISON_MARKER}
+
 {content}
 
 Latest commit: <https://github.com/scverse/{repo}/commit/{after}>  \n\

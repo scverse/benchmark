@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 use std::fmt::Display;
 
-use crate::event::ORG;
+use crate::constants::ORG;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]

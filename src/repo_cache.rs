@@ -2,7 +2,8 @@ use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use std::path::Path;
 
-use crate::{event::ORG, utils::PipeMap};
+use crate::constants::ORG;
+use crate::utils::PipeMap;
 
 lazy_static::lazy_static! {
     static ref DIRS: ProjectDirs = ProjectDirs::from("org", "scverse", "scverse benchmark").expect("No Home dir");

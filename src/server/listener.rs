@@ -13,10 +13,9 @@ use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
 use octocrab::{params::repos::Reference, Octocrab};
 use tower_http::trace::TraceLayer;
 
-use crate::{
-    cli::RunBenchmark,
-    event::{Compare, Event, PullRequestEvent, PullRequestEventAction, ORG},
-};
+use crate::cli::RunBenchmark;
+use crate::constants::{BENCHMARK_LABEL, ORG};
+use crate::event::{Compare, Event, PullRequestEvent, PullRequestEventAction};
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -42,7 +41,7 @@ async fn handle(
                 .labels
                 .iter()
                 .flatten()
-                .all(|e| e.name != "benchmark")
+                .all(|e| e.name != BENCHMARK_LABEL)
             {
                 return Ok("skipped".to_owned());
             }

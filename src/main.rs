@@ -5,6 +5,7 @@ use clap::Parser;
 
 mod benchmark;
 mod cli;
+mod constants;
 mod event;
 #[cfg(test)]
 mod fixtures;

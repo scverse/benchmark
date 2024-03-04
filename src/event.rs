@@ -3,7 +3,6 @@ mod github;
 use crate::cli::RunBenchmark;
 
 pub(crate) use github::{PullRequestEvent, PullRequestEventAction};
-pub(crate) const ORG: &str = "scverse";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Event {
