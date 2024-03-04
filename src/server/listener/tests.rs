@@ -15,11 +15,10 @@ use wiremock::{
     Mock, MockServer, ResponseTemplate,
 };
 
-use crate::{
-    cli::RunBenchmark,
-    event::{Compare, Event, PullRequestEvent, ORG},
-    fixtures::PR,
-};
+use crate::cli::RunBenchmark;
+use crate::constants::ORG;
+use crate::event::{Compare, Event, PullRequestEvent};
+use crate::fixtures::PR;
 
 use super::{handle, AppState};
 
