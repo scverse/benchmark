@@ -1018,6 +1018,7 @@ dependencies = [
  "chrono",
  "either",
  "futures",
+ "futures-core",
  "futures-util",
  "http",
  "http-body",

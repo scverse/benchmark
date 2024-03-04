@@ -5,8 +5,10 @@ use chrono::Utc;
 use futures::{channel::mpsc::Receiver, StreamExt};
 
 use crate::benchmark::{asv_compare_command, sync_repo_and_run};
-use crate::constants::{is_pr_comparison, BOT_NAME, ORG, PR_COMPARISON_MARKER};
+use crate::constants::{is_pr_comparison, ORG, PR_COMPARISON_MARKER};
 use crate::event::{Compare, Event};
+
+use super::octocrab_utils::PageExt;
 
 pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
     // loop runs until sender disconnects
@@ -53,8 +55,8 @@ async fn update_comment(cmp: &Compare, markdown: &str) -> Result<()> {
         .list_comments(cmp.pr)
         .send()
         .await?
-        .into_iter()
-        .find(is_pr_comparison)
+        .find(&github_api, is_pr_comparison)
+        .await?
     {
         issue_api.update_comment(comment.id, markdown).await?;
         tracing::info!("Updated comment at {}", comment.html_url);

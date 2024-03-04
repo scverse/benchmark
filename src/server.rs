@@ -8,6 +8,7 @@ use crate::cli::ServeArgs;
 use crate::event::Event;
 
 mod listener;
+mod octocrab_utils;
 mod runner;
 
 pub(crate) async fn serve(args: ServeArgs) -> Result<()> {
