@@ -1,6 +1,5 @@
 use std::pin::pin;
 
-use futures::StreamExt;
 use futures::{future, TryStreamExt};
 use octocrab::Page;
 use serde::de::DeserializeOwned;
@@ -27,7 +26,7 @@ where
     ) -> octocrab::Result<Option<I>> {
         let items = pin!(self.into_stream(github_api));
         items
-            .filter(|r| future::ready(r.as_ref().map(&pred).unwrap_or(false)))
+            .try_filter(|item| future::ready(pred(item)))
             .try_next()
             .await
     }
