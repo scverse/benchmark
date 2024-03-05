@@ -18,9 +18,9 @@ pub(crate) async fn sync_repo_and_run(req: &RunBenchmark) -> Result<PathBuf> {
         config_ref,
         run_on,
     } = req.clone();
-    let repo =
+    let (repo, config_ref) =
         tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??;
-    tracing::info!("Synced repo to {:?}", repo.path());
+    tracing::info!("Synced config repo to {:?} @ {config_ref}", repo.path());
     let wd = run_benchmark(repo, &run_on[..]).await?;
     Ok(wd)
 }
