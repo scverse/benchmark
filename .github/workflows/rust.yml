@@ -30,7 +30,7 @@ jobs:
     - name: Get artifact
       id: artifact
       run: |
-        BIN_PATH=$(cargo metadata --no-deps --format-version=1 | jq -r '[.target_directory, .packages[].targets[].name] | join("/")')
+        BIN_PATH=$(cargo metadata --no-deps --format-version=1 | jq -r '[.target_directory, "release", .packages[].targets[].name] | join("/")')
         echo "BIN_PATH=$BIN_PATH" >> $GITHUB_OUTPUT
     - name: Upload artifact
       uses: actions/upload-artifact@v3
