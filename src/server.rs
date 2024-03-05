@@ -13,7 +13,7 @@ mod runner;
 
 pub(crate) async fn serve(args: ServeArgs) -> Result<()> {
     let (sender, receiver) = channel::<Event>(32);
-    let service = listener::listen(sender, &args.secret_token);
+    let service = listener::listen(sender, args.secret_token);
     let tcp_listener = TcpListener::bind(args.addr).await?;
 
     let mut set: JoinSet<Result<()>> = JoinSet::new();

@@ -1,6 +1,7 @@
 use clap::{Args, Parser, Subcommand};
 use serde::Deserialize;
 
+use secrecy::SecretString;
 use std::fmt::Display;
 
 use crate::constants::ORG;
@@ -11,6 +12,9 @@ use crate::constants::ORG;
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Commands,
+    /// GitHub token used to make API requests.
+    #[arg(long, short = 't', env)]
+    pub(crate) github_token: Option<SecretString>,
 }
 
 #[derive(Subcommand)]
@@ -28,7 +32,7 @@ pub(crate) struct ServeArgs {
     pub(crate) addr: String,
     /// Webhook secret as configured on GitHub
     #[arg(long, env)]
-    pub(crate) secret_token: String,
+    pub(crate) secret_token: SecretString,
 }
 
 #[derive(Args, Debug, Clone, Deserialize, PartialEq, Eq)]

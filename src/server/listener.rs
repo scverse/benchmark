@@ -1,5 +1,6 @@
 use anyhow::Result;
 use futures::{channel::mpsc::Sender, SinkExt};
+use secrecy::{ExposeSecret, SecretString};
 use std::sync::Arc;
 
 use axum::{
@@ -97,12 +98,13 @@ async fn handle_enqueue(
     }
 }
 
-pub(crate) fn listen(sender: Sender<Event>, secret: &str) -> axum::Router {
+pub(crate) fn listen(sender: Sender<Event>, secret: SecretString) -> axum::Router {
     let state = AppState {
         sender,
-        secret: GitHubSecret(Arc::new(secret.to_owned())),
+        secret: GitHubSecret(Arc::new(secret.expose_secret().to_owned())),
         github_client: octocrab::instance(),
     };
+    std::mem::drop(secret);
 
     Router::new()
         .route("/", post(handle))

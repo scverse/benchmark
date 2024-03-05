@@ -2,6 +2,7 @@
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
+use secrecy::ExposeSecret;
 
 mod benchmark;
 mod cli;
@@ -18,6 +19,13 @@ async fn main() -> Result<()> {
     cli::init_tracing();
 
     let cli = cli::Cli::parse();
+    if let Some(github_token) = cli.github_token {
+        let crab = octocrab::Octocrab::builder()
+            // https://github.com/XAMPPRocky/octocrab/issues/594
+            .personal_token(github_token.expose_secret().to_owned())
+            .build()?;
+        octocrab::initialise(crab);
+    }
     match cli.command {
         cli::Commands::Serve(args) => {
             server::serve(args).await?;

@@ -251,6 +251,7 @@ dependencies = [
  "http-body-util",
  "lazy_static",
  "octocrab",
+ "secrecy",
  "serde",
  "serde_json",
  "tap",
