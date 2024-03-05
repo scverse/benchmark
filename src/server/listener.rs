@@ -67,18 +67,37 @@ async fn handle_enqueue(
     event: Compare,
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
-    let branch_ok = if let Some(config_ref) = &event.run_benchmark.config_ref {
-        state
+    let ref_ok = if let Some(config_ref) = &event.run_benchmark.config_ref {
+        // TODO: Once this is fixed: https://github.com/github/docs/issues/31914
+        // only get_ref needs to happen
+        let commit_res = state
             .github_client
-            .repos(ORG, &event.run_benchmark.repo)
-            // TODO: check if this needs to be done differently: https://github.com/github/docs/issues/31914
-            .get_ref(&Reference::Commit(config_ref.to_owned()))
-            .await
-            .is_ok()
+            .commits(ORG, &event.run_benchmark.repo)
+            .get(config_ref)
+            .await;
+        match commit_res {
+            Ok(_) => true,
+            Err(octocrab::Error::GitHub { source, backtrace }) => {
+                tracing::error!("GitHub Error: {source}\n{backtrace}");
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("GitHub Error: {source}"),
+                ));
+            }
+            Err(e) => {
+                tracing::info!("Failed treating {config_ref} as commit: {e:?}");
+                state
+                    .github_client
+                    .repos(ORG, &event.run_benchmark.repo)
+                    .get_ref(&Reference::Commit(config_ref.to_owned()))
+                    .await
+                    .is_ok()
+            }
+        }
     } else {
         true
     };
-    if branch_ok {
+    if ref_ok {
         state
             .sender
             .send(event.into())
@@ -93,7 +112,10 @@ async fn handle_enqueue(
     } else {
         Err((
             StatusCode::BAD_REQUEST,
-            format!("Error: {} is not a valid repo/branch", event.run_benchmark),
+            format!(
+                "Error: {} is not a valid repo/ref combination",
+                event.run_benchmark
+            ),
         ))
     }
 }
