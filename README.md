@@ -1,4 +1,4 @@
 benchmark
 =========
 
-This branch exists to test the PR commenter
+This branch exists to test the PR commenter.
