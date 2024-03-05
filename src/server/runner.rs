@@ -87,7 +87,7 @@ fn make_comment(repo: &str, after: &str, markdown: &str) -> String {
 
 {content}
 
-Latest commit: <https://github.com/scverse/{repo}/commit/{after}>  \n\
+Latest commit: <https://github.com/scverse/{repo}/commit/{after}>
 Last changed: <time datetime="{t_iso}">{t_human}</time>
 "#,
     )
