@@ -18,7 +18,7 @@ jobs:
     - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
     - name: Install build tools
-      run: dnf install -y gcc
+      run: dnf install -y gcc openssl-devel
     - name: Build
       run: cargo build
     - name: Check style
