@@ -11,6 +11,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: rockylinux/rockylinux:9
     steps:
     - uses: actions/checkout@v3
     - uses: Swatinem/rust-cache@v2
