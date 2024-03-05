@@ -15,6 +15,7 @@ jobs:
       image: rockylinux/rockylinux:9
     steps:
     - uses: actions/checkout@v3
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
     - name: Build
       run: cargo build
