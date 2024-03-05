@@ -11,12 +11,29 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: rockylinux/rockylinux:9
     steps:
     - uses: actions/checkout@v3
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy
     - uses: Swatinem/rust-cache@v2
+    - name: Install build tools
+      run: dnf install -y jq gcc openssl-devel
     - name: Build
-      run: cargo build
+      run: cargo build --release
     - name: Check style
       run: cargo clippy
     - name: Run tests
       run: cargo test
+    - name: Get artifact
+      id: artifact
+      run: |
+        BIN_PATH=$(cargo metadata --no-deps --format-version=1 | jq -r '[.target_directory, "release", .packages[].targets[].name] | join("/")')
+        echo "BIN_PATH=$BIN_PATH" >> $GITHUB_OUTPUT
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Binary
+        path: ${{ steps.artifact.outputs.BIN_PATH }}
