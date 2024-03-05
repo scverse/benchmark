@@ -13,7 +13,7 @@ use super::octocrab_utils::PageExt;
 pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
     // loop runs until sender disconnects
     while let Some(event) = receiver.next().await {
-        // TODO: don’t exit loop on error
+        // TODO: figure out why errors are swallowed
         match event {
             Event::Compare(ref cmp) => {
                 tracing::info!("Comparing {:?} for PR {}", cmp.run_benchmark.run_on, cmp.pr);
@@ -28,7 +28,7 @@ pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
 async fn compare(wd: &Path, cmp: &Compare) -> Result<()> {
     // TODO: distinguish on type level
     let [before, after] = cmp.run_benchmark.run_on.as_slice() else {
-        unreachable!()
+        panic!("run_on is not a slice of size 2");
     };
     let output = asv_compare_command(wd, before, after)
         .spawn()?
@@ -45,10 +45,15 @@ async fn compare(wd: &Path, cmp: &Compare) -> Result<()> {
 async fn update_comment(cmp: &Compare, markdown: &str) -> Result<()> {
     // TODO: as above
     let [_before, after] = cmp.run_benchmark.run_on.as_slice() else {
-        unreachable!()
+        panic!("run_on is not a slice of size 2");
     };
     let markdown = make_comment(&cmp.run_benchmark.repo, after, markdown);
 
+    tracing::info!(
+        "Updating comment for {ORG}/{}’s PR {}",
+        cmp.run_benchmark.repo,
+        cmp.pr
+    );
     let github_api = octocrab::instance();
     let issue_api = github_api.issues(ORG, &cmp.run_benchmark.repo);
     if let Some(comment) = issue_api

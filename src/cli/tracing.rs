@@ -7,6 +7,7 @@ pub(crate) fn init() {
         .with_target("tower_http::trace::make_span", Level::DEBUG)
         .with_target("tower_http::trace::on_request", Level::DEBUG)
         .with_target("tower_http::trace::on_response", Level::DEBUG)
+        .with_target("octocrab", Level::DEBUG)
         .with_default(Level::INFO);
 
     tracing_subscriber::registry()
