@@ -1,5 +1,6 @@
 /// Run ASV
 use std::borrow::Borrow;
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
@@ -38,7 +39,10 @@ pub(crate) fn asv_compare_command(wd: &Path, left: &str, right: &str) -> Command
     command
 }
 
-async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Result<PathBuf> {
+async fn run_benchmark<S>(repo: git2::Repository, on: &[S]) -> Result<PathBuf>
+where
+    S: Borrow<str> + AsRef<OsStr>,
+{
     let wd = {
         let wd = repo.workdir().context("no workdir")?;
         if wd.join("benchmarks").join("asv.conf.json").is_file() {
@@ -51,6 +55,7 @@ async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Resu
     tracing::info!("Re-discovering benchmarks in {}", wd.display());
     let result = asv_command(&wd)
         .args(["run", "--bench=just-discover"])
+        .args(on.iter().next_back().as_slice())
         .spawn()?
         .wait()
         .await?;
