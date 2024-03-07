@@ -11,12 +11,14 @@ use axum::{
     Router,
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
-use octocrab::Octocrab;
+use octocrab::{
+    models::webhook_events::payload::PullRequestWebhookEventAction as ActionType, Octocrab,
+};
 use tower_http::trace::TraceLayer;
 
 use crate::cli::RunBenchmark;
 use crate::constants::BENCHMARK_LABEL;
-use crate::event::{Compare, Event, PullRequestEvent, PullRequestEventAction};
+use crate::event::{Compare, Event, PullRequestEvent};
 
 use super::octocrab_utils::ref_exists;
 
@@ -37,32 +39,34 @@ async fn handle(
     State(state): State<AppState>,
     GithubEvent(event): GithubEvent<PullRequestEvent>,
 ) -> impl IntoResponse {
-    match event.action {
-        PullRequestEventAction::Synchronize(sync) => {
-            if event
-                .pull_request
-                .labels
-                .iter()
-                .flatten()
-                .all(|e| e.name != BENCHMARK_LABEL)
-            {
-                return Ok("skipped".to_owned());
-            }
-            let run_benchmark = RunBenchmark {
-                repo: event.repository.name,
-                config_ref: Some(sync.after.clone()),
-                run_on: vec![event.pull_request.base.sha, sync.after],
-            };
-            handle_enqueue(
-                Compare {
-                    run_benchmark,
-                    pr: event.pull_request.number,
-                },
-                state,
-            )
-            .await
-        }
+    if !matches!(
+        event.action,
+        ActionType::Opened | ActionType::Reopened | ActionType::Synchronize | ActionType::Labeled
+    ) {
+        return Ok("skipped: event action".to_owned());
     }
+    if event
+        .pull_request
+        .labels
+        .iter()
+        .flatten()
+        .all(|e| e.name != BENCHMARK_LABEL)
+    {
+        return Ok("skipped: missing benchmark label".to_owned());
+    }
+    let run_benchmark = RunBenchmark {
+        repo: event.repository.name,
+        config_ref: Some(event.pull_request.head.sha.clone()),
+        run_on: vec![event.pull_request.base.sha, event.pull_request.head.sha],
+    };
+    handle_enqueue(
+        Compare {
+            run_benchmark,
+            pr: event.pull_request.number,
+        },
+        state,
+    )
+    .await
 }
 
 async fn handle_enqueue(

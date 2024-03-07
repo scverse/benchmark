@@ -2,7 +2,7 @@ mod github;
 
 use crate::cli::RunBenchmark;
 
-pub(crate) use github::{PullRequestEvent, PullRequestEventAction};
+pub(crate) use github::PullRequestEvent;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Event {

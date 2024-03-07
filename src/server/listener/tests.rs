@@ -138,7 +138,7 @@ async fn should_error_on_invalid_event_payload() {
     let res = app.oneshot(request).await.unwrap();
 
     let body = assert_status_eq(res, StatusCode::BAD_REQUEST).await;
-    assert_eq!(&body, "missing field `number` at line 1 column 2");
+    assert!(body.starts_with("missing field"));
     assert!(recv.next().await.is_none());
 }
 
@@ -154,7 +154,7 @@ async fn should_skip_on_no_label() {
     let res = app.oneshot(request).await.unwrap();
 
     let body = assert_status_eq(res, StatusCode::OK).await;
-    assert_eq!(&body, "skipped");
+    assert_eq!(&body, "skipped: missing benchmark label");
     assert!(recv.next().await.is_none());
 }
 
