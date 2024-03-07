@@ -10,16 +10,21 @@ use crate::event::{Compare, Event};
 
 use super::octocrab_utils::PageExt;
 
-pub(crate) async fn runner(mut receiver: Receiver<Event>) -> Result<()> {
+pub(crate) async fn runner(mut receiver: Receiver<Event>) {
     // loop runs until sender disconnects
     while let Some(event) = receiver.next().await {
-        // TODO: figure out why errors are swallowed
-        match event {
-            Event::Compare(ref cmp) => {
-                tracing::info!("Comparing {:?} for PR {}", cmp.run_benchmark.run_on, cmp.pr);
-                let wd = sync_repo_and_run(&cmp.run_benchmark).await?;
-                compare(&wd, cmp).await?;
-            }
+        if let Err(error) = handle_event(event).await {
+            tracing::error!("{}", error);
+        }
+    }
+}
+
+async fn handle_event(event: Event) -> Result<()> {
+    match event {
+        Event::Compare(ref cmp) => {
+            tracing::info!("Comparing {:?} for PR {}", cmp.run_benchmark.run_on, cmp.pr);
+            let wd = sync_repo_and_run(&cmp.run_benchmark).await?;
+            compare(&wd, cmp).await?;
         }
     }
     Ok(())

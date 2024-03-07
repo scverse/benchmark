@@ -4,7 +4,7 @@
 #
 # and in another shell:
 #
-# gh-hook http://localhost:3000/ {action: "enqueue", repo: "scanpy", branch: "master"} --full --allow-errors
+# gh-hook http://localhost:3000/ (open ./src/fixtures/test.hook-pr-sync.json) --full --allow-errors
 
 # Test function mimicking GH webhook delivery
 def gh-hook [

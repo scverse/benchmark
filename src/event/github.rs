@@ -43,7 +43,7 @@ mod tests {
     fn test_deserialize() {
         let event = serde_json::from_str::<PullRequestEvent>(PR).unwrap();
         let PullRequestEventAction::Synchronize(Synchronize { before, after }) = event.action;
-        assert_eq!(before, "cc6d6ea741ff6c35df3747a95c4869cc3ed5f84e");
-        assert_eq!(after, "f88f7bd4250b963752d615e491b7e676ce5eb7f0");
+        assert_eq!(before, "96180e4a5fa4dc9ada3114c831a1aa8b2fd5a1f2");
+        assert_eq!(after, "0d41f8596349daeadaa17c551fa0598f0a95666d");
     }
 }

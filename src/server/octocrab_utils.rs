@@ -61,7 +61,6 @@ pub(super) async fn ref_exists(
                 .is_ok())
         }
         e => {
-            tracing::error!("API Error: {e}");
             bail!("API Error: {e}");
         }
     }

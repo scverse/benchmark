@@ -9,4 +9,7 @@
             "source.organizeImports": "always",
         },
     },
+    "search.exclude": {
+        "src/fixtures/**": true,
+    },
 }

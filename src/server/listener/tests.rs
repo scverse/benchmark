@@ -1,4 +1,6 @@
-use axum::{body::Body, extract::Request, http::StatusCode, routing::post, Router};
+use axum::{
+    body::Body, extract::Request, http::StatusCode, response::Response, routing::post, Router,
+};
 use axum_github_webhook_extract::GithubToken as GitHubSecret;
 use futures::{
     channel::mpsc::{channel, Receiver},
@@ -7,7 +9,6 @@ use futures::{
 use hmac_sha256::HMAC;
 use http_body_util::BodyExt;
 use octocrab::{models::commits::Commit, Octocrab};
-use serde_json::json;
 use std::sync::Arc;
 use tower::util::ServiceExt;
 use wiremock::{
@@ -34,14 +35,17 @@ mod mock_error {
     // of these test failures.
     //
     // This handler should always come after your real expectations as it will match any GET request.
-    pub async fn setup_error_handler(mock_server: &MockServer, message: &str) {
+    pub async fn setup_error_handler(mock_server: &MockServer, message: impl ToString) {
+        let message = message.to_string();
         Mock::given(method("GET"))
             .and(path_regex(".*"))
-            .respond_with(ResponseTemplate::new(500).set_body_json(json!( {
-                "documentation_url": "",
-                "errors": None::<Vec<serde_json::Value>>,
-                "message": message,
-            })))
+            .respond_with(move |req: &wiremock::Request| {
+                ResponseTemplate::new(500).set_body_json(json!( {
+                    "documentation_url": "",
+                    "errors": None::<Vec<serde_json::Value>>,
+                    "message": format!("{message} on {}", req.url),
+                }))
+            })
             .mount(mock_server)
             .await;
     }
@@ -54,13 +58,14 @@ const TEST_SECRET: &str = "It's a Secret to Everybody";
 async fn setup_github_api(template: Option<ResponseTemplate>) -> MockServer {
     let mock_server = MockServer::start().await;
     if let Some(template) = template {
-        let uri = format!("/repos/{ORG}/anndata/commits/f88f7bd4250b963752d615e491b7e676ce5eb7f0");
+        let uri =
+            format!("/repos/{ORG}/benchmark/commits/0d41f8596349daeadaa17c551fa0598f0a95666d");
         Mock::given(method("GET"))
             .and(path(&uri))
             .respond_with(template)
             .mount(&mock_server)
             .await;
-        setup_error_handler(&mock_server, &format!("GET on {uri} was not received")).await;
+        setup_error_handler(&mock_server, format!("GET on {uri} was not received")).await;
     } else {
         setup_error_handler(&mock_server, "Unexpected GET").await;
     }
@@ -106,14 +111,23 @@ async fn body_string(body: Body) -> String {
     String::from_utf8_lossy(&body.collect().await.unwrap().to_bytes()).into_owned()
 }
 
+async fn assert_status_eq(res: Response<Body>, status_expected: StatusCode) -> String {
+    let status = res.status();
+    let body = body_string(res.into_body()).await;
+    if status == status_expected {
+        return body;
+    }
+    panic!("{status} != {status_expected} ({body})",);
+}
+
 #[tokio::test]
 async fn should_error_on_invalid_signature() {
     let (app, mut recv) = app(None).await;
     let request = make_webhook_request(PR, false);
     let res = app.oneshot(request).await.unwrap();
 
-    assert_eq!(res.status(), StatusCode::BAD_REQUEST, "{res:?}");
-    assert_eq!(&body_string(res.into_body()).await, "signature mismatch");
+    let body = assert_status_eq(res, StatusCode::BAD_REQUEST).await;
+    assert_eq!(&body, "signature mismatch");
     assert!(recv.next().await.is_none());
 }
 
@@ -123,55 +137,45 @@ async fn should_error_on_invalid_event_payload() {
     let request = make_webhook_request("{}", true);
     let res = app.oneshot(request).await.unwrap();
 
-    assert_eq!(res.status(), StatusCode::BAD_REQUEST, "{res:?}");
-    assert_eq!(
-        &body_string(res.into_body()).await,
-        "missing field `number` at line 1 column 2"
-    );
+    let body = assert_status_eq(res, StatusCode::BAD_REQUEST).await;
+    assert_eq!(&body, "missing field `number` at line 1 column 2");
     assert!(recv.next().await.is_none());
 }
 
 #[tokio::test]
 async fn should_skip_on_no_label() {
-    let (app, mut recv) = app(None).await;
-    let request = make_webhook_request(PR, true);
+    let commit_after: Commit = serde_json::from_str(COMMIT).unwrap();
+    let template = ResponseTemplate::new(200).set_body_json(commit_after);
+    let (app, mut recv) = app(Some(template)).await;
+    // remove the benchmark label
+    let mut evt: PullRequestEvent = serde_json::from_str(PR).unwrap();
+    evt.pull_request.labels.as_mut().unwrap().clear();
+    let request = make_webhook_request(serde_json::to_string(&evt).unwrap(), true);
     let res = app.oneshot(request).await.unwrap();
 
-    assert_eq!(res.status(), StatusCode::OK, "{res:?}");
-    assert_eq!(body_string(res.into_body()).await, "skipped");
+    let body = assert_status_eq(res, StatusCode::OK).await;
+    assert_eq!(&body, "skipped");
     assert!(recv.next().await.is_none());
 }
 
 #[tokio::test]
 async fn should_enqueue_valid_pr_event() {
+    // pull request with benchmark label
+    let evt: PullRequestEvent = serde_json::from_str(PR).unwrap();
     // expected event payload
-    let sha_base = "a4786471ee4d4e894fec150e426c3551db0f31e0";
-    let sha_after = "f88f7bd4250b963752d615e491b7e676ce5eb7f0";
+    let sha_base: &str = evt.pull_request.base.sha.as_ref();
+    let sha_after: &str = evt.pull_request.head.sha.as_ref();
     let commit_after: Commit = serde_json::from_str(COMMIT).unwrap();
+    assert_eq!(commit_after.sha, sha_after);
     let template = ResponseTemplate::new(200).set_body_json(commit_after);
     let (app, mut recv) = app(Some(template)).await;
-    // pull request with benchmark label
-    let mut body: PullRequestEvent = serde_json::from_str(PR).unwrap();
-    // the test data has no “benchmark” label, add one:
-    body.pull_request.labels.as_mut().unwrap().push(
-        serde_json::from_value(json!({
-            "id": 2_532_885_704_u64,
-            "node_id": "MDU6TGFiZWwyNTMyODg1N5Ax",
-            "name": "benchmark",
-            "description": "Allow benchmark runs for PRs marked with this label.",
-            "color": "f1c40f",
-            "url": format!("https://api.github.com/repos/{ORG}/anndata/labels/benchmark"),
-            "default": false,
-        }))
-        .unwrap(),
-    );
-    let request = make_webhook_request(serde_json::to_string(&body).unwrap(), true);
+    let request = make_webhook_request(serde_json::to_string(&evt).unwrap(), true);
     let res = app.oneshot(request).await.unwrap();
 
-    //assert_eq!(res.status(), StatusCode::OK, "{res:?}");
-    assert_eq!(body_string(res.into_body()).await, "enqueued");
+    let body = assert_status_eq(res, StatusCode::OK).await;
+    assert_eq!(body, "enqueued");
     let run_benchmark = RunBenchmark {
-        repo: "anndata".to_owned(),
+        repo: evt.repository.name,
         config_ref: Some(sha_after.to_owned()),
         run_on: vec![
             // pull request base, not `before`
@@ -181,7 +185,7 @@ async fn should_enqueue_valid_pr_event() {
     };
     let evt = Compare {
         run_benchmark,
-        pr: body.pull_request.number,
+        pr: evt.pull_request.number,
     };
     assert_eq!(recv.next().await, Some(evt.into()));
 }

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use futures::FutureExt;
 use futures::{channel::mpsc::channel, TryFutureExt};
 use std::future::IntoFuture;
 use tokio::net::TcpListener;
@@ -14,11 +15,12 @@ mod runner;
 pub(crate) async fn serve(args: ServeArgs) -> Result<()> {
     let (sender, receiver) = channel::<Event>(32);
     let service = listener::listen(sender, args.secret_token);
-    let tcp_listener = TcpListener::bind(args.addr).await?;
+    let tcp_listener = TcpListener::bind(&args.addr).await?;
+    tracing::info!("Listening on {}", args.addr);
 
     let mut set: JoinSet<Result<()>> = JoinSet::new();
     set.spawn(axum::serve(tcp_listener, service).into_future().err_into());
-    set.spawn(runner::runner(receiver));
+    set.spawn(runner::runner(receiver).map(Result::Ok));
     while let Some(res) = set.join_next().await {
         let _ = res?;
     }
