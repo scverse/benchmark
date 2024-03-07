@@ -11,12 +11,14 @@ use axum::{
     Router,
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
-use octocrab::{params::repos::Reference, Octocrab};
+use octocrab::Octocrab;
 use tower_http::trace::TraceLayer;
 
 use crate::cli::RunBenchmark;
-use crate::constants::{BENCHMARK_LABEL, ORG};
+use crate::constants::BENCHMARK_LABEL;
 use crate::event::{Compare, Event, PullRequestEvent, PullRequestEventAction};
+
+use super::octocrab_utils::ref_exists;
 
 #[derive(Debug, Clone)]
 struct AppState {
@@ -67,37 +69,10 @@ async fn handle_enqueue(
     event: Compare,
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
-    let ref_ok = if let Some(config_ref) = &event.run_benchmark.config_ref {
-        // TODO: Once this is fixed: https://github.com/github/docs/issues/31914
-        // only get_ref needs to happen
-        let commit_res = state
-            .github_client
-            .commits(ORG, &event.run_benchmark.repo)
-            .get(config_ref)
-            .await;
-        match commit_res {
-            Ok(_) => true,
-            Err(octocrab::Error::GitHub { source, backtrace }) => {
-                tracing::error!("GitHub Error: {source}\n{backtrace}");
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("GitHub Error: {source}"),
-                ));
-            }
-            Err(e) => {
-                tracing::info!("Failed treating {config_ref} as commit: {e:?}");
-                state
-                    .github_client
-                    .repos(ORG, &event.run_benchmark.repo)
-                    .get_ref(&Reference::Commit(config_ref.to_owned()))
-                    .await
-                    .is_ok()
-            }
-        }
-    } else {
-        true
-    };
-    if ref_ok {
+    if ref_exists(&state.github_client, &event.run_benchmark)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    {
         state
             .sender
             .send(event.into())
