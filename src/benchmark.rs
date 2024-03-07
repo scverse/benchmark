@@ -3,7 +3,7 @@ use std::borrow::Borrow;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
@@ -48,6 +48,16 @@ async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Resu
         }
     };
 
+    tracing::info!("Re-discovering benchmarks in {}", wd.display());
+    let result = asv_command(&wd)
+        .args(["run", "--bench=just-discover"])
+        .spawn()?
+        .wait()
+        .await?;
+    if result.code() != Some(0) {
+        bail!("asv run --bench=just-discover exited with {result}");
+    }
+
     tracing::info!("Running asv in {}", wd.display());
     let mut command = asv_command(&wd);
     command.arg("run").arg("--skip-existing-commits");
@@ -65,7 +75,9 @@ async fn run_benchmark<S: Borrow<str>>(repo: git2::Repository, on: &[S]) -> Resu
         child
     };
     let result = child.wait().await?;
-    tracing::info!("asv exited with {result}");
+    if result.code() != Some(0) {
+        bail!("asv run exited with {result}");
+    }
 
     Ok(wd)
 }

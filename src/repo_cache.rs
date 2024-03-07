@@ -5,7 +5,7 @@ use std::path::Path;
 use crate::constants::ORG;
 
 lazy_static::lazy_static! {
-    static ref DIRS: ProjectDirs = ProjectDirs::from("org", "scverse", "scverse benchmark").expect("No Home dir");
+    static ref DIRS: ProjectDirs = ProjectDirs::from("org", "scverse", "scverse-benchmark").expect("No Home dir");
     static ref CACHE_DIR: &'static Path = DIRS.cache_dir();
 }
 
