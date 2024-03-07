@@ -6,7 +6,7 @@ use futures::{
 };
 use hmac_sha256::HMAC;
 use http_body_util::BodyExt;
-use octocrab::{models::repos::Ref, Octocrab};
+use octocrab::{models::commits::Commit, Octocrab};
 use serde_json::json;
 use std::sync::Arc;
 use tower::util::ServiceExt;
@@ -18,7 +18,7 @@ use wiremock::{
 use crate::cli::RunBenchmark;
 use crate::constants::ORG;
 use crate::event::{Compare, Event, PullRequestEvent};
-use crate::fixtures::PR;
+use crate::fixtures::{COMMIT, PR};
 
 use super::{handle, AppState};
 
@@ -54,7 +54,7 @@ const TEST_SECRET: &str = "It's a Secret to Everybody";
 async fn setup_github_api(template: Option<ResponseTemplate>) -> MockServer {
     let mock_server = MockServer::start().await;
     if let Some(template) = template {
-        let uri = format!("/repos/{ORG}/anndata/git/ref/f88f7bd4250b963752d615e491b7e676ce5eb7f0");
+        let uri = format!("/repos/{ORG}/anndata/commits/f88f7bd4250b963752d615e491b7e676ce5eb7f0");
         Mock::given(method("GET"))
             .and(path(&uri))
             .respond_with(template)
@@ -147,19 +147,10 @@ async fn should_enqueue_valid_pr_event() {
     // expected event payload
     let sha_base = "a4786471ee4d4e894fec150e426c3551db0f31e0";
     let sha_after = "f88f7bd4250b963752d615e491b7e676ce5eb7f0";
-    let config_ref: Ref = serde_json::from_value(json!({
-        "ref": sha_after.to_owned(),
-        "node_id": "xyz".to_owned(),
-        "url": format!("https://api.github.com/repos/scverse/anndata/ref/{sha_after}"),
-        "object": {
-            "type": "commit",
-            "sha": sha_after.to_owned(),
-            "url": format!("https://api.github.com/repos/scverse/anndata/commits/{sha_after}"),
-        },
-    }))
-    .unwrap();
-    let template = ResponseTemplate::new(200).set_body_json(config_ref);
+    let commit_after: Commit = serde_json::from_str(COMMIT).unwrap();
+    let template = ResponseTemplate::new(200).set_body_json(commit_after);
     let (app, mut recv) = app(Some(template)).await;
+    // pull request with benchmark label
     let mut body: PullRequestEvent = serde_json::from_str(PR).unwrap();
     // the test data has no “benchmark” label, add one:
     body.pull_request.labels.as_mut().unwrap().push(
@@ -169,7 +160,7 @@ async fn should_enqueue_valid_pr_event() {
             "name": "benchmark",
             "description": "Allow benchmark runs for PRs marked with this label.",
             "color": "f1c40f",
-            "url": "https://api.github.com/repos/scverse/anndata/labels/benchmark",
+            "url": format!("https://api.github.com/repos/{ORG}/anndata/labels/benchmark"),
             "default": false,
         }))
         .unwrap(),

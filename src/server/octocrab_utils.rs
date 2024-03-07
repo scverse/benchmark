@@ -46,20 +46,23 @@ pub(super) async fn ref_exists(
     };
     // TODO: Once this is fixed: https://github.com/github/docs/issues/31914
     // only get_ref needs to happen
-    let commit_res = github_client.commits(ORG, repo).get(config_ref).await;
-    match commit_res {
-        Ok(_) => Ok(true),
-        Err(octocrab::Error::GitHub { source, backtrace }) => {
-            tracing::error!("GitHub Error: {source}\n{backtrace}");
-            bail!("GitHub Error: {source}");
-        }
-        Err(e) => {
-            tracing::info!("Failed treating {config_ref} as commit: {e:?}");
+    let Err(commit_err) = github_client.commits(ORG, repo).get(config_ref).await else {
+        return Ok(true);
+    };
+    match commit_err {
+        octocrab::Error::GitHub { source, .. }
+            if source.message.starts_with("No commit found for SHA") =>
+        {
+            tracing::info!("Failed treating {config_ref} as commit: {source:?}");
             Ok(github_client
                 .repos(ORG, repo)
                 .get_ref(&Reference::Commit(config_ref.to_owned()))
                 .await
                 .is_ok())
+        }
+        e => {
+            tracing::error!("API Error: {e}");
+            bail!("API Error: {e}");
         }
     }
 }
