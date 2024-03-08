@@ -1,0 +1,4 @@
+[Service]
+ExecStart=/home/phil/bin/benchmark
+LoadCredential=github_token
+LoadCredential=webhook_secret
