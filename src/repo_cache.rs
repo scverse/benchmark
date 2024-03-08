@@ -28,7 +28,7 @@ pub(crate) fn sync_repo(repo: &str, to_ref: Option<&str>) -> Result<(git2::Repos
         remote.fetch(&[&to_ref], None, None)?;
         to_ref
     };
-    // switch to ref
+    // switch to first ref in FETCH_HEAD
     repo.set_head("FETCH_HEAD")?;
     repo.checkout_head(Some(git2::build::CheckoutBuilder::default().force()))?;
     Ok((repo, to_ref))

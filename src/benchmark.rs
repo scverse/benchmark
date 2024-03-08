@@ -1,10 +1,11 @@
 /// Run ASV
-use std::borrow::Borrow;
-use std::ffi::OsStr;
+use std::fs::File;
+use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use anyhow::{bail, Context, Result};
+use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
@@ -13,16 +14,14 @@ use crate::repo_cache::sync_repo;
 
 /// Sync repo to match remote’s branch, and run ASV afterwards.
 pub(crate) async fn sync_repo_and_run(req: &RunBenchmark) -> Result<PathBuf> {
-    // TODO: figure out how to spawn without cloning?
-    let RunBenchmark {
-        repo,
-        config_ref,
-        run_on,
-    } = req.clone();
-    let (repo, config_ref) =
-        tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??;
+    let (repo, config_ref) = {
+        let RunBenchmark {
+            repo, config_ref, ..
+        } = req.clone();
+        tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??
+    };
     tracing::info!("Synced config repo to {:?} @ {config_ref}", repo.path());
-    let wd = run_benchmark(repo, &run_on[..]).await?;
+    let wd = run_benchmark(repo, &req.run_on).await?;
     Ok(wd)
 }
 
@@ -39,17 +38,10 @@ pub(crate) fn asv_compare_command(wd: &Path, left: &str, right: &str) -> Command
     command
 }
 
-async fn run_benchmark<S>(repo: git2::Repository, on: &[S]) -> Result<PathBuf>
-where
-    S: Borrow<str> + AsRef<OsStr>,
-{
+async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf> {
     let wd = {
-        let wd = repo.workdir().context("no workdir")?;
-        if wd.join("benchmarks").join("asv.conf.json").is_file() {
-            wd.join("benchmarks")
-        } else {
-            wd.to_path_buf()
-        }
+        let on = on.to_owned();
+        tokio::task::spawn_blocking(move || fetch_configured_refs(&repo, &on)).await??
     };
 
     tracing::info!("Re-discovering benchmarks in {}", wd.display());
@@ -84,5 +76,48 @@ where
         bail!("asv run exited with {result}");
     }
 
+    Ok(wd)
+}
+
+#[derive(Deserialize)]
+struct AsvConfig {
+    #[serde(default = "default_branches")]
+    branches: Vec<String>,
+}
+
+fn default_branches() -> Vec<String> {
+    vec!["master".to_owned()]
+}
+
+fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<PathBuf> {
+    let wd = {
+        let wd = repo.workdir().context("no workdir")?;
+        if wd.join("benchmarks").join("asv.conf.json").is_file() {
+            wd.join("benchmarks")
+        } else {
+            wd.to_path_buf()
+        }
+    };
+    // read ASV config
+    let file = File::open(wd.join("asv.conf.json"))?;
+    let mut buffer = String::new();
+    let mut reader = BufReader::new(file);
+    reader.read_to_string(&mut buffer)?;
+    let config: AsvConfig = serde_json5::from_str(&buffer)?;
+
+    {
+        let mut remote = repo.find_remote("origin")?;
+        let refs: Vec<String> = config
+            .branches
+            .iter()
+            .map(|b| format!("refs/heads/{b}"))
+            .chain(refs.iter().cloned())
+            .collect();
+        tracing::info!(
+            "Fetching refs {refs:?} from remote {}",
+            remote.name().unwrap_or("")
+        );
+        remote.fetch(&refs, None, None)?;
+    }
     Ok(wd)
 }
