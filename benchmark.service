@@ -1,4 +1,11 @@
+[Unit]
+Description=Benchmark Queue/Runner
+
 [Service]
-ExecStart=/home/phil/bin/benchmark
+ExecStart=/home/phil/bin/benchmark serve 0.0.0.0:80
+Environment=PATH=/home/phil/micromamba/envs/asv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 LoadCredential=github_token
 LoadCredential=webhook_secret
+
+[Install]
+WantedBy=default.target
