@@ -1,6 +1,10 @@
 use clap::{Args, Parser, Subcommand};
+use serde::Deserialize;
 
-use crate::event::RunBenchmark;
+use secrecy::SecretString;
+use std::fmt::Display;
+
+use crate::constants::ORG;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -8,6 +12,9 @@ use crate::event::RunBenchmark;
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Commands,
+    /// GitHub token used to make API requests.
+    #[arg(long, short = 't', env)]
+    pub(crate) github_token: Option<SecretString>,
 }
 
 #[derive(Subcommand)]
@@ -25,5 +32,26 @@ pub(crate) struct ServeArgs {
     pub(crate) addr: String,
     /// Webhook secret as configured on GitHub
     #[arg(long, env)]
-    pub(crate) secret_token: String,
+    pub(crate) secret_token: SecretString,
+}
+
+#[derive(Args, Debug, Clone, Deserialize, PartialEq, Eq)]
+pub(crate) struct RunBenchmark {
+    /// Repository containing ASV benchmarks (in scverse org)
+    pub repo: String,
+    /// Branch or commit to use benchmark configuration from
+    #[arg(long, short)]
+    pub config_ref: Option<String>,
+    /// Which refs in the target repository to run benchmarks on (default: default branch)
+    pub run_on: Vec<String>,
+}
+
+impl Display for RunBenchmark {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{ORG}/{}", self.repo)?;
+        if let Some(config_ref) = &self.config_ref {
+            write!(f, "@{config_ref}")?;
+        }
+        Ok(())
+    }
 }
