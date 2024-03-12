@@ -40,5 +40,6 @@ pub(crate) fn get_credential(name: &str) -> anyhow::Result<secrecy::SecretString
     let mut buffer = String::new();
     let mut reader = BufReader::new(file);
     reader.read_to_string(&mut buffer)?;
+    tracing::info!("{}: {}", name, buffer);
     Ok(buffer.into())
 }
