@@ -43,3 +43,30 @@ pub(crate) fn get_credential(name: &str) -> anyhow::Result<secrecy::SecretString
     tracing::info!("{}: {}", name, buffer);
     Ok(buffer.into())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use secrecy::ExposeSecret;
+    use std::{fs::File, io::Write};
+
+    const TEST_SECRET: &str = "It's a Secret to Everybody";
+
+    #[test]
+    fn test_load_credential() {
+        let tmp_dir = test_temp_dir::test_temp_dir!();
+        let cred = tmp_dir.used_by(|p| {
+            File::create(p.join("foo"))
+                .unwrap()
+                .write_all(TEST_SECRET.as_bytes())
+                .unwrap();
+
+            temp_env::with_var("CREDENTIALS_DIRECTORY", Some(p), || {
+                get_credential("foo").unwrap()
+            })
+        });
+
+        assert_eq!(cred.expose_secret(), TEST_SECRET);
+    }
+}
