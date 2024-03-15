@@ -1,2 +1,2 @@
 def do_thing():
-    print("hello world")
+    print([1] * 20_000)
