@@ -13,3 +13,47 @@
 3. [Cancellation](https://github.com/scverse/benchmark/milestone/3)
 
    Improve UX by allowing cancellation and other niceties
+
+## MVP Setup
+
+All these currently assume you have a `<user>` login with sudo rights on `scvbench`.
+
+### Debugging
+
+- Use `journalctl -u benchmark -f` on the server to tail the logs of the service.
+- Check GitHub’s page for [Hook deliveries][].
+
+[Hook deliveries]: https://github.com/scverse/benchmark/settings/hooks/464592128?tab=deliveries
+
+### One-time server setup
+1. As the `benchmarker` user, install micromamba, then:
+
+   ```shell
+   micromamba create -n asv -c conda-forge conda mamba virtualenv asv
+   micromamba run -n asv asv machine --yes
+   ```
+
+2. Update `LoadCredentialEncrypted` lines in `benchmark.service` using
+
+   ```shell
+   sudo systemd-creds encrypt --name=webhook_secret secret.txt -
+   sudo systemd-creds encrypt --name=github_token scverse-bot-pat.txt -
+   shred secret.txt scverse-bot-pat.txt
+   ```
+
+3. Copy the `benchmark.service` file to the system, enable and start the service:
+
+   ```console
+   $ rsync benchmark.service <user>@scvbench:
+   $ ssh <user>@scvbench
+   scvbench$ sudo mv benchmark.service /etc/systemd/system/
+   scvbench$ sudo systemctl enable --now benchmark
+   ```
+
+### Deployment
+1. Make changes in `<branch>` (either `main` or a PR branch) and wait until CI finishes.
+2. Run `nu scripts/deploy.nu <branch> --user=<user>`.
+3. Trigger a run,
+   e.g. remove and re-add the <kbd>benchmark</kbd> label in [PR 11][].
+
+[PR 11]: https://github.com/scverse/benchmark/pull/11

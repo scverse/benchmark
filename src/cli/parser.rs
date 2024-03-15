@@ -32,7 +32,7 @@ pub(crate) struct ServeArgs {
     pub(crate) addr: String,
     /// Webhook secret as configured on GitHub
     #[arg(long, env)]
-    pub(crate) secret_token: SecretString,
+    pub(crate) secret_token: Option<SecretString>,
 }
 
 #[derive(Args, Debug, Clone, Deserialize, PartialEq, Eq)]

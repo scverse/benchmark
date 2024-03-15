@@ -13,6 +13,7 @@ directories = "5.0.1"
 futures = "0.3.30"
 git2 = "0.18.2"
 lazy_static = "1.4.0"
+libsystemd = "0.7.0"
 octocrab = { version = "0.34.1", features = ["stream", "tracing"] }
 secrecy = "0.8.0"
 serde = { version = "1.0.196", features = ["derive"] }
@@ -26,6 +27,9 @@ tracing-subscriber = "0.3.18"
 
 [dev-dependencies]
 assert-json-diff = "2.0.2"
+wiremock = "0.6.0"
+temp-env = "0.3.6"
+test-temp-dir = "0.2.0"
 # transitive deps we use directly
 http = "1.0.0"
 serde_json = "1.0"
@@ -33,4 +37,3 @@ hmac-sha256 = "1.1.7"
 hex = "0.4.3"
 tower = "0.4.13"
 http-body-util = "0.1.0"
-wiremock = "0.6.0"
