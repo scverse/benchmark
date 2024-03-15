@@ -35,10 +35,7 @@ async fn compare(wd: &Path, cmp: &Compare) -> Result<()> {
     let [before, after] = cmp.run_benchmark.run_on.as_slice() else {
         panic!("run_on is not a slice of size 2");
     };
-    let output = asv_compare_command(wd, before, after)
-        .spawn()?
-        .wait_with_output()
-        .await?;
+    let output = asv_compare_command(wd, before, after).output().await?;
     if output.status.code() != Some(0) {
         return Err(anyhow::anyhow!("asv compare exited with {}", output.status));
     }
