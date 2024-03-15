@@ -21,10 +21,6 @@ pub(crate) async fn serve(args: ServeArgs) -> Result<()> {
         .ok_or(())
         .or_else(|()| get_credential("webhook_secret"))?;
 
-    tracing::info!(
-        "webhook_secret: {:?}",
-        secrecy::ExposeSecret::expose_secret(&secret_token).as_bytes()
-    );
     let service = listener::listen(sender, secret_token);
     let tcp_listener = TcpListener::bind(&args.addr).await?;
     tracing::info!("Listening on {}", args.addr);
