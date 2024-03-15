@@ -252,6 +252,7 @@ dependencies = [
  "lazy_static",
  "libsystemd",
  "octocrab",
+ "regex",
  "secrecy",
  "serde",
  "serde_json",
