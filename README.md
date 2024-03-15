@@ -16,7 +16,14 @@
 
 ## MVP Setup
 
-Assuming you have a `<user>` login with sudo rights on `scvbench`.
+All these currently assume you have a `<user>` login with sudo rights on `scvbench`.
+
+### Debugging
+
+- Use `journalctl -u benchmark -f` on the server to tail the logs of the service.
+- Check GitHub’s page for [Hook deliveries][].
+
+[Hook deliveries]: https://github.com/scverse/benchmark/settings/hooks/464592128?tab=deliveries
 
 ### One-time server setup
 1. As the `benchmarker` user, install micromamba, then:
@@ -48,7 +55,5 @@ Assuming you have a `<user>` login with sudo rights on `scvbench`.
 2. Run `nu scripts/deploy.nu <branch> --user=<user>`.
 3. Trigger a run,
    e.g. remove and re-add the <kbd>benchmark</kbd> label in [PR 11][].
-
-You can use `journalctl -u benchmark -f` to tail the logs.
 
 [PR 11]: https://github.com/scverse/benchmark/pull/11
