@@ -14,9 +14,24 @@
 
    Improve UX by allowing cancellation and other niceties
 
+## Usage
+
+Eventually, we’ll just have a project-wide webhook like this. For now, if you want to test:
+
+1. Add a [asv config][] to your project (either the project root or a <samp>benchmarks</samp> directory)
+2. Add a webhook to your scverse project with these [webhook settings][], i.e.
+   - Content type: <samp>application/json</samp>
+   - Let me select individual events → **Pull Requests**
+3. Add a label <kbd>benchmark</kbd> to a PR authored by a trusted user.
+4. Watch [scverse-bot][] add and update a comment with the PR’s performance impact.
+
+[asv config]: https://asv.readthedocs.io/en/v0.6.1/using.html
+[webhook settings]: https://github.com/scverse/benchmark/settings/hooks/464592128
+[scverse-bot]: https://github.com/scverse-bot
+
 ## MVP Setup
 
-All these currently assume you have a `<user>` login with sudo rights on `scvbench`.
+All these currently assume you have a <samp>&lt;user></samp> login with sudo rights on the <samp>scvbench</samp> server.
 
 ### Debugging
 
@@ -26,14 +41,14 @@ All these currently assume you have a `<user>` login with sudo rights on `scvben
 [Hook deliveries]: https://github.com/scverse/benchmark/settings/hooks/464592128?tab=deliveries
 
 ### One-time server setup
-1. As the `benchmarker` user, install micromamba, then:
+1. As the <samp>benchmarker</samp> user, install micromamba, then:
 
    ```shell
    micromamba create -n asv -c conda-forge conda mamba virtualenv asv
    micromamba run -n asv asv machine --yes
    ```
 
-2. Update `LoadCredentialEncrypted` lines in `benchmark.service` using
+2. Update `LoadCredentialEncrypted` lines in <samp>benchmark.service</samp> using
 
    ```shell
    sudo systemd-creds encrypt --name=webhook_secret secret.txt -
@@ -41,7 +56,7 @@ All these currently assume you have a `<user>` login with sudo rights on `scvben
    shred secret.txt scverse-bot-pat.txt
    ```
 
-3. Copy the `benchmark.service` file to the system, enable and start the service:
+3. Copy the <samp>benchmark.service</samp> file to the system, enable and start the service:
 
    ```console
    $ rsync benchmark.service <user>@scvbench:
@@ -51,7 +66,7 @@ All these currently assume you have a `<user>` login with sudo rights on `scvben
    ```
 
 ### Deployment
-1. Make changes in `<branch>` (either `main` or a PR branch) and wait until CI finishes.
+1. Make changes in <samp>&lt,branch></samp> (either <samp>main</samp> or a PR branch) and wait until CI finishes.
 2. Run `nu scripts/deploy.nu <branch> --user=<user>`.
 3. Trigger a run,
    e.g. remove and re-add the <kbd>benchmark</kbd> label in [PR 11][].
