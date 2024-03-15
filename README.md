@@ -66,7 +66,7 @@ All these currently assume you have a <samp>&lt;user></samp> login with sudo rig
    ```
 
 ### Deployment
-1. Make changes in <samp>&lt,branch></samp> (either <samp>main</samp> or a PR branch) and wait until CI finishes.
+1. Make changes in <samp>&lt;branch></samp> (either <samp>main</samp> or a PR branch) and wait until CI finishes.
 2. Run `nu scripts/deploy.nu <branch> --user=<user>`.
 3. Trigger a run,
    e.g. remove and re-add the <kbd>benchmark</kbd> label in [PR 11][].
