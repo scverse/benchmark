@@ -1,4 +1,2 @@
-import time
-
 def do_thing():
-    time.sleep(1)
+    print("hello world")
