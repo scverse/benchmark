@@ -19,7 +19,7 @@ mod utils;
 async fn main() -> Result<()> {
     cli::init_tracing();
 
-    let cli = cli::Cli::parse();
+    let cli = cli::Cli::<Vec<String>>::parse();
     // If token has been passed via CLI or env, use it, otherwise try to get as a credential.
     if let Some(github_token) = cli
         .github_token

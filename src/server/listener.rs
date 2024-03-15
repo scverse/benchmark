@@ -57,7 +57,7 @@ async fn handle(
     let run_benchmark = RunBenchmark {
         repo: event.repository.name,
         config_ref: Some(event.pull_request.head.sha.clone()),
-        run_on: vec![event.pull_request.base.sha, event.pull_request.head.sha],
+        run_on: [event.pull_request.base.sha, event.pull_request.head.sha],
     };
     handle_enqueue(
         Compare {

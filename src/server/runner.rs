@@ -31,10 +31,7 @@ async fn handle_event(event: Event) -> Result<()> {
 }
 
 async fn compare(wd: &Path, cmp: &Compare) -> Result<()> {
-    // TODO: distinguish on type level
-    let [before, after] = cmp.run_benchmark.run_on.as_slice() else {
-        panic!("run_on is not a slice of size 2");
-    };
+    let [before, after] = &cmp.run_benchmark.run_on;
     let output = asv_compare_command(wd, before, after)
         .spawn()?
         .wait_with_output()
@@ -48,10 +45,7 @@ async fn compare(wd: &Path, cmp: &Compare) -> Result<()> {
 }
 
 async fn update_comment(cmp: &Compare, markdown: &str) -> Result<()> {
-    // TODO: as above
-    let [_before, after] = cmp.run_benchmark.run_on.as_slice() else {
-        panic!("run_on is not a slice of size 2");
-    };
+    let [_before, after] = &cmp.run_benchmark.run_on;
     let markdown = make_comment(&cmp.run_benchmark.repo, after, markdown);
 
     tracing::info!(

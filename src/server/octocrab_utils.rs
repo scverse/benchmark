@@ -44,11 +44,11 @@ where
     }
 }
 
-pub(super) async fn ref_exists(
+pub(super) async fn ref_exists<T: Send + Clone + Sync>(
     github_client: &octocrab::Octocrab,
     RunBenchmark {
         config_ref, repo, ..
-    }: &RunBenchmark,
+    }: &RunBenchmark<T>,
 ) -> Result<bool> {
     let Some(config_ref) = config_ref.as_ref() else {
         return Ok(true);
