@@ -1,1 +1,2 @@
-def do_thing(): pass
+def do_thing():
+    print("hello world")
