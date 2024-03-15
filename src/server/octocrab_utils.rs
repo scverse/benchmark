@@ -1,7 +1,7 @@
 use std::pin::pin;
 
-use anyhow::Result;
-use futures::{future, TryStreamExt};
+use anyhow::{Context, Result};
+use futures::{future, stream, StreamExt, TryStreamExt};
 use lazy_static::lazy_static;
 use octocrab::{
     models::repos::{Ref, RepoCommit},
@@ -58,15 +58,24 @@ pub(super) async fn ref_exists(
             .commits(ORG, repo)
             .get(config_ref)
             .await
-            .found()?
+            .found()
+            .context("failed to check if commit exists")?
             .is_some());
     }
-    Ok(github_client
-        .repos(ORG, repo)
-        .get_ref(&Reference::Commit(config_ref.to_owned()))
-        .await
-        .found()?
-        .is_some())
+    stream::iter([
+        Reference::Branch(config_ref.to_owned()),
+        Reference::Tag(config_ref.to_owned()),
+    ])
+    .then(|reference| async move {
+        github_client
+            .repos(ORG, repo)
+            .get_ref(&reference)
+            .await
+            .found()
+    })
+    .try_any(|ref_| async move { ref_.is_some() })
+    .await
+    .context("failed to check if ref exists")
 }
 
 // TODO: switch to status_code once it exists
