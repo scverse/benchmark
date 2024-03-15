@@ -1,3 +1,1 @@
-import time
-
-time.sleep(1)
+def do_thing(): pass

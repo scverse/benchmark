@@ -1,6 +1,8 @@
 # Write the benchmarking functions here.
 # See "Writing benchmarks" in the asv docs for more information.
 
+import benchmark_testproj
+
 
 class TimeSuite:
     """
@@ -21,11 +23,12 @@ class TimeSuite:
             pass
 
     def time_range(self):
-        import benchmark_testproj
-
         d = self.d
         for key in range(500):
             d[key]
+
+    def time_thing(self):
+        benchmark_testproj.do_thing()
 
 
 class MemSuite:
