@@ -13,8 +13,7 @@ directories = "5.0.1"
 futures = "0.3.30"
 git2 = "0.18.2"
 lazy_static = "1.4.0"
-libsystemd = "0.7.0"
-octocrab = { version = "0.34.1", features = ["stream", "tracing"] }
+octocrab = { version = "0.35.0", features = ["stream", "tracing"] }
 regex = "1.10.3"
 secrecy = "0.8.0"
 serde = { version = "1.0.196", features = ["derive"] }
@@ -25,6 +24,9 @@ tokio = { version = "1.36.0", features = ["rt-multi-thread", "process"] }
 tower-http = { version = "0.5.1", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libsystemd = "0.7.0"
 
 [dev-dependencies]
 assert-json-diff = "2.0.2"
