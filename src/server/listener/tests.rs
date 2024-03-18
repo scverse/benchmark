@@ -8,10 +8,7 @@ use futures::{
 };
 use hmac_sha256::HMAC;
 use http_body_util::BodyExt;
-use octocrab::{
-    models::{commits::Commit, CheckRunId},
-    Octocrab,
-};
+use octocrab::{models::commits::Commit, Octocrab};
 use std::sync::Arc;
 use tower::util::ServiceExt;
 use wiremock::{
@@ -189,7 +186,7 @@ async fn should_enqueue_valid_pr_event() {
     let evt = Compare {
         run_benchmark,
         pr: evt.pull_request.number,
-        check_id: CheckRunId(0),
+        check_id: None,
     };
     assert_eq!(recv.next().await, Some(evt.into()));
 }

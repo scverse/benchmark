@@ -73,8 +73,9 @@ async fn handle(
         .status(CheckRunStatus::Queued)
         .send()
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .id;
+        .map(|c| c.id)
+        .map_err(|e| tracing::error!("{e}"))
+        .ok();
     handle_enqueue(
         Compare {
             run_benchmark,

@@ -15,7 +15,7 @@ pub(crate) enum Event {
 pub(crate) struct Compare {
     pub run_benchmark: RunBenchmark,
     pub pr: u64,
-    pub check_id: CheckRunId,
+    pub check_id: Option<CheckRunId>,
 }
 
 impl From<Compare> for Event {

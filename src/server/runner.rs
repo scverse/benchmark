@@ -18,7 +18,7 @@ pub(crate) async fn runner(mut receiver: Receiver<Event>) {
             .instrument(tracing::info_span!("handle_event"))
             .await
         {
-            tracing::error!("{}", error);
+            tracing::error!("{error}");
         }
     }
 }
@@ -29,10 +29,11 @@ async fn handle_event(event: Event) -> Result<()> {
             tracing::info!("Comparing {:?} for PR {}", cmp.run_benchmark.run_on, cmp.pr);
             let github_client = octocrab::instance();
             let checks_handler = github_client.checks(ORG, &cmp.run_benchmark.repo);
-            checks::with_check(checks_handler, cmp.check_id, || async {
-                full_compare(cmp).await
-            })
-            .await?;
+            if let Some(check_id) = cmp.check_id {
+                checks::with_check(checks_handler, check_id, || full_compare(cmp)).await?;
+            } else {
+                full_compare(cmp).await?;
+            }
         }
     }
     Ok(())
