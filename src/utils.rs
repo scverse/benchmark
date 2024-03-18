@@ -31,6 +31,7 @@ pub(crate) trait PipeMap: tap::Pipe {
 impl<T: tap::Pipe> PipeMap for T {}
 
 /// Get a systemd credential (see <https://systemd.io/CREDENTIALS/>).
+#[cfg(target_os = "linux")]
 pub(crate) fn get_credential(name: &str) -> anyhow::Result<secrecy::SecretString> {
     use libsystemd::credentials::CredentialsLoader;
     use std::io::{BufReader, Read};
@@ -42,6 +43,12 @@ pub(crate) fn get_credential(name: &str) -> anyhow::Result<secrecy::SecretString
     reader.read_to_string(&mut buffer)?;
     buffer.shrink_to_fit();
     Ok(buffer.into())
+}
+
+/// Fail to get a systemd credential as we’re not on Linux.
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn get_credential(_name: &str) -> anyhow::Result<secrecy::SecretString> {
+    Err(anyhow::anyhow!("No way to get credential on this OS"))
 }
 
 #[cfg(test)]
