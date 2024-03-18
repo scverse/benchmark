@@ -2,6 +2,7 @@ use anyhow::Result;
 use futures::{channel::mpsc::Sender, SinkExt};
 use secrecy::{ExposeSecret, SecretString};
 use std::sync::Arc;
+use tracing::Instrument;
 
 use axum::{
     extract::{FromRef, State},
@@ -12,13 +13,14 @@ use axum::{
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
 use octocrab::{
-    models::webhook_events::payload::PullRequestWebhookEventAction as ActionType, Octocrab,
+    models::webhook_events::payload::PullRequestWebhookEventAction as ActionType,
+    params::checks::CheckRunStatus, Octocrab,
 };
 use tower_http::trace::TraceLayer;
 
-use crate::cli::RunBenchmark;
 use crate::constants::BENCHMARK_LABEL;
 use crate::event::{Compare, Event, PullRequestEvent};
+use crate::{cli::RunBenchmark, constants::ORG};
 
 use super::octocrab_utils::ref_exists;
 
@@ -37,16 +39,20 @@ impl FromRef<AppState> for GitHubSecret {
 
 async fn handle(
     State(state): State<AppState>,
-    GithubEvent(event): GithubEvent<PullRequestEvent>,
+    GithubEvent(PullRequestEvent {
+        pull_request: pr,
+        action,
+        repository,
+        ..
+    }): GithubEvent<PullRequestEvent>,
 ) -> impl IntoResponse {
     if !matches!(
-        event.action,
+        action,
         ActionType::Opened | ActionType::Reopened | ActionType::Synchronize | ActionType::Labeled
     ) {
         return Ok("skipped: event action".to_owned());
     }
-    if event
-        .pull_request
+    if pr
         .labels
         .iter()
         .flatten()
@@ -55,17 +61,29 @@ async fn handle(
         return Ok("skipped: missing benchmark label".to_owned());
     }
     let run_benchmark = RunBenchmark {
-        repo: event.repository.name,
-        config_ref: Some(event.pull_request.head.sha.clone()),
-        run_on: vec![event.pull_request.base.sha, event.pull_request.head.sha],
+        repo: repository.name,
+        config_ref: Some(pr.head.sha.clone()),
+        run_on: vec![pr.base.sha, pr.head.sha.clone()],
     };
+
+    let github_client = octocrab::instance();
+    let checks = github_client.checks(ORG, &run_benchmark.repo);
+    let check_id = checks
+        .create_check_run("benchmark", pr.head.sha)
+        .status(CheckRunStatus::Queued)
+        .send()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .id;
     handle_enqueue(
         Compare {
             run_benchmark,
-            pr: event.pull_request.number,
+            pr: pr.number,
+            check_id,
         },
         state,
     )
+    .instrument(tracing::info_span!("handle_enqueue"))
     .await
 }
 
