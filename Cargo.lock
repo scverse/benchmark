@@ -255,6 +255,7 @@ dependencies = [
  "hmac-sha256",
  "http",
  "http-body-util",
+ "jsonwebtoken",
  "lazy_static",
  "libsystemd",
  "octocrab",

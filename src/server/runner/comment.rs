@@ -3,7 +3,7 @@ use chrono::Utc;
 
 use crate::constants::{is_pr_comparison, ORG, PR_COMPARISON_MARKER};
 use crate::event::Compare;
-use crate::server::octocrab_utils::PageExt;
+use crate::octocrab_utils::PageExt;
 
 pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
     // TODO: as above
