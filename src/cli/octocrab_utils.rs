@@ -1,8 +1,11 @@
 use anyhow::Result;
-use futures::TryStreamExt;
+use octocrab::models::Installation;
 use secrecy::ExposeSecret;
 
-use crate::{cli, constants::APP_ID};
+use crate::{
+    cli,
+    constants::{APP_ID, ORG},
+};
 
 use super::Auth;
 
@@ -14,16 +17,12 @@ where
         cli::Auth::AppKey(app_key) => {
             let key = jsonwebtoken::EncodingKey::from_rsa_pem(app_key.expose_secret().as_bytes())?;
             let base = octocrab::Octocrab::builder().app(APP_ID, key).build()?;
-            let insts = base
-                .apps()
-                .installations()
-                .send()
-                .await?
-                .into_stream(&base)
-                .try_collect::<Vec<_>>()
-                .await?;
-            tracing::info!("Installations: {}", serde_json5::to_string(&insts)?);
-            Ok(octocrab::Octocrab::installation(&base, insts[0].id))
+            let Installation { id, html_url, .. } = base.apps().get_org_installation(ORG).await?;
+            tracing::info!(
+                "Found installation: {}",
+                html_url.unwrap_or_else(|| id.to_string())
+            );
+            Ok(octocrab::Octocrab::installation(&base, id))
         }
         cli::Auth::GitHubToken(github_token) => {
             Ok(octocrab::Octocrab::builder()
