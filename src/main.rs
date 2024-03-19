@@ -2,8 +2,6 @@
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use secrecy::ExposeSecret;
-use utils::get_credential;
 
 mod benchmark;
 mod cli;
@@ -11,6 +9,7 @@ mod constants;
 mod event;
 #[cfg(test)]
 mod fixtures;
+mod octocrab_utils;
 mod repo_cache;
 mod server;
 mod utils;
@@ -19,18 +18,10 @@ mod utils;
 async fn main() -> Result<()> {
     cli::init_tracing();
 
-    let cli = cli::Cli::parse();
-    // If token has been passed via CLI or env, use it, otherwise try to get as a credential.
-    if let Some(github_token) = cli
-        .github_token
-        .or_else(|| get_credential("github_token").ok())
-    {
-        let crab = octocrab::Octocrab::builder()
-            // https://github.com/XAMPPRocky/octocrab/issues/594
-            .personal_token(github_token.expose_secret().to_owned())
-            .build()?;
-        octocrab::initialise(crab);
-    }
+    let mut cli = cli::Cli::parse();
+
+    octocrab::initialise(std::mem::take(&mut cli.auth).into_octocrab().await?);
+
     match cli.command {
         cli::Commands::Serve(args) => {
             server::serve(args).await?;

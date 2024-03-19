@@ -1,47 +1,15 @@
-use std::pin::pin;
-
 use anyhow::{Context, Result};
-use futures::{future, stream, StreamExt, TryStreamExt};
+use futures::{stream, StreamExt, TryStreamExt};
 use lazy_static::lazy_static;
 use octocrab::{
     models::repos::{Ref, RepoCommit},
     params::repos::Reference,
-    Page,
 };
-use serde::de::DeserializeOwned;
 
 use crate::{cli::RunBenchmark, constants::ORG};
 
 lazy_static! {
     static ref SHA1_RE: regex::Regex = regex::Regex::new(r"^[a-f0-9]{40}$").unwrap();
-}
-
-pub(super) trait PageExt<I>
-where
-    I: DeserializeOwned + 'static,
-{
-    async fn find<F: Fn(&I) -> bool>(
-        self,
-        github_api: &octocrab::Octocrab,
-        pred: F,
-    ) -> octocrab::Result<Option<I>>;
-}
-
-impl<I> PageExt<I> for Page<I>
-where
-    I: DeserializeOwned + 'static,
-{
-    async fn find<F: Fn(&I) -> bool>(
-        self,
-        github_api: &octocrab::Octocrab,
-        pred: F,
-    ) -> octocrab::Result<Option<I>> {
-        let items = pin!(self.into_stream(github_api));
-        items
-            .try_filter(|item| future::ready(pred(item)))
-            .try_next()
-            .await
-    }
 }
 
 pub(super) async fn ref_exists(
