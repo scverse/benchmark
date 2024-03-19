@@ -51,6 +51,7 @@ pub(crate) fn get_credential(_name: &str) -> anyhow::Result<secrecy::SecretStrin
     Err(anyhow::anyhow!("No way to get credential on this OS"))
 }
 
+#[cfg(target_os = "linux")]
 #[cfg(test)]
 mod tests {
     use super::*;

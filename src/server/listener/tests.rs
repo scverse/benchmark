@@ -186,6 +186,7 @@ async fn should_enqueue_valid_pr_event() {
     let evt = Compare {
         run_benchmark,
         pr: evt.pull_request.number,
+        check_id: None,
     };
     assert_eq!(recv.next().await, Some(evt.into()));
 }
