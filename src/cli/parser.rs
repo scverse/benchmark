@@ -34,7 +34,7 @@ pub(crate) struct AuthInner {
 }
 
 impl AuthInner {
-    pub(crate) async fn into_octocrab(&mut self) -> Result<octocrab::Octocrab> {
+    pub(crate) async fn into_octocrab(self) -> Result<octocrab::Octocrab> {
         auth_to_octocrab(self).await
     }
 }

@@ -19,7 +19,7 @@ async fn main() -> Result<()> {
 
     let mut cli = cli::Cli::parse();
 
-    octocrab::initialise(cli.auth.into_octocrab().await?);
+    octocrab::initialise(std::mem::take(&mut cli.auth).into_octocrab().await?);
 
     match cli.command {
         cli::Commands::Serve(args) => {
