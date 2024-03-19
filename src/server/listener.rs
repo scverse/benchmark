@@ -73,29 +73,30 @@ async fn handle_enqueue(
     event: Compare,
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
-    if ref_exists(&state.github_client, &event.run_benchmark)
+    let ref_exists = ref_exists(&state.github_client, &event.run_benchmark)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-    {
+        .map_err(|e| {
+            tracing::error!("Enqueue failed: {e:?}");
+            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
+        })?;
+    if ref_exists {
         state
             .sender
             .send(event.into())
             .await
             .map(|()| "enqueued".to_owned())
             .map_err(|_| {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Error: Failed to send event".to_owned(),
-                )
+                let msg = "Failed to send event";
+                tracing::error!("Enqueue failed: {msg}");
+                (StatusCode::INTERNAL_SERVER_ERROR, msg.to_owned())
             })
     } else {
-        Err((
-            StatusCode::BAD_REQUEST,
-            format!(
-                "Error: {} is not a valid repo/ref combination",
-                event.run_benchmark
-            ),
-        ))
+        let msg = format!(
+            "{} is not a valid repo/ref combination",
+            event.run_benchmark
+        );
+        tracing::info!("Enqueue failed: {msg}");
+        Err((StatusCode::BAD_REQUEST, msg))
     }
 }
 
