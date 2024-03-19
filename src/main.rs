@@ -2,8 +2,6 @@
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use futures::TryStreamExt;
-use secrecy::ExposeSecret;
 
 mod benchmark;
 mod cli;
@@ -21,35 +19,8 @@ async fn main() -> Result<()> {
 
     let mut cli = cli::Cli::parse();
 
-    // initialize octocrab
-    match std::mem::take(&mut cli.auth).try_into()? {
-        cli::Auth::AppKey(app_key) => {
-            let key = jsonwebtoken::EncodingKey::from_rsa_pem(app_key.expose_secret().as_bytes())?;
-            let base = octocrab::Octocrab::builder()
-                .app(constants::APP_ID, key)
-                .build()?;
-            let insts = base
-                .apps()
-                .installations()
-                .send()
-                .await?
-                .into_stream(&base)
-                .try_collect::<Vec<_>>()
-                .await?;
-            tracing::info!("Installations: {}", serde_json5::to_string(&insts)?);
-            let crab = octocrab::Octocrab::installation(&base, insts[0].id);
-            octocrab::initialise(crab);
-        }
-        cli::Auth::GitHubToken(github_token) => {
-            let crab = octocrab::Octocrab::builder()
-                // https://github.com/XAMPPRocky/octocrab/issues/594
-                .personal_token(github_token.expose_secret().to_owned())
-                .build()?;
-            octocrab::initialise(crab);
-        }
-    };
+    octocrab::initialise(cli.auth.into_octocrab().await?);
 
-    // run command
     match cli.command {
         cli::Commands::Serve(args) => {
             server::serve(args).await?;

@@ -1,10 +1,13 @@
 use clap::{Args, Parser, Subcommand};
 use serde::Deserialize;
 
+use anyhow::Result;
 use secrecy::SecretString;
 use std::fmt::Display;
 
 use crate::{constants::ORG, utils::get_credential};
+
+use super::octocrab_utils::auth_to_octocrab;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -28,6 +31,12 @@ pub(crate) struct AuthInner {
     /// GitHub personal access token used to make API requests.
     #[arg(long, short = 't', env)]
     github_token: Option<SecretString>,
+}
+
+impl AuthInner {
+    pub(crate) async fn into_octocrab(&mut self) -> Result<octocrab::Octocrab> {
+        auth_to_octocrab(self).await
+    }
 }
 
 pub(crate) enum Auth {
