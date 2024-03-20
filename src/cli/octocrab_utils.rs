@@ -24,11 +24,8 @@ where
             );
             Ok(octocrab::Octocrab::installation(&base, id))
         }
-        cli::Auth::GitHubToken(github_token) => {
-            Ok(octocrab::Octocrab::builder()
-                // https://github.com/XAMPPRocky/octocrab/issues/594
-                .personal_token(github_token.expose_secret().to_owned())
-                .build()?)
-        }
+        cli::Auth::GitHubToken(github_token) => Ok(octocrab::Octocrab::builder()
+            .personal_token(github_token)
+            .build()?),
     }
 }
