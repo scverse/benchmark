@@ -23,11 +23,11 @@ Eventually, we’ll just have a project-wide webhook like this. For now, if you 
    - Content type: <samp>application/json</samp>
    - Let me select individual events → **Pull Requests**
 3. Add a label <kbd>benchmark</kbd> to a PR authored by a trusted user.
-4. Watch [scverse-bot][] add and update a comment with the PR’s performance impact.
+4. Watch [scverse-benchmarks][] add and update a comment with the PR’s performance impact.
 
 [asv config]: https://asv.readthedocs.io/en/v0.6.1/using.html
 [webhook settings]: https://github.com/scverse/benchmark/settings/hooks/464592128
-[scverse-bot]: https://github.com/scverse-bot
+[scverse-benchmarks]: https://github.com/apps/scverse-benchmark
 
 ## MVP Setup
 
@@ -52,8 +52,8 @@ All these currently assume you have a <samp>&lt;user></samp> login with sudo rig
 
    ```shell
    sudo systemd-creds encrypt --name=webhook_secret secret.txt -
-   sudo systemd-creds encrypt --name=github_token scverse-bot-pat.txt -
-   shred secret.txt scverse-bot-pat.txt
+   sudo systemd-creds encrypt --name=app_key app-key.pem -
+   shred secret.txt app-key.pem
    ```
 
 3. Copy the <samp>benchmark.service</samp> file to the system, enable and start the service:

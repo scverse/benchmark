@@ -177,7 +177,7 @@ async fn should_enqueue_valid_pr_event() {
     let run_benchmark = RunBenchmark {
         repo: evt.repository.name,
         config_ref: Some(sha_after.to_owned()),
-        run_on: vec![
+        run_on: [
             // pull request base, not `before`
             sha_base.to_owned(),
             sha_after.to_owned(),
@@ -186,6 +186,7 @@ async fn should_enqueue_valid_pr_event() {
     let evt = Compare {
         run_benchmark,
         pr: evt.pull_request.number,
+        check_id: None,
     };
     assert_eq!(recv.next().await, Some(evt.into()));
 }
