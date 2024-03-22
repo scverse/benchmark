@@ -63,7 +63,7 @@ async fn handle(
     let run_benchmark = RunBenchmark {
         repo: repository.name,
         config_ref: Some(pr.head.sha.clone()),
-        run_on: vec![pr.base.sha, pr.head.sha.clone()],
+        run_on: [pr.base.sha, pr.head.sha.clone()],
     };
 
     let github_client = octocrab::instance();

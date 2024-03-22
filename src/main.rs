@@ -18,7 +18,7 @@ mod utils;
 async fn main() -> Result<()> {
     cli::init_tracing();
 
-    let mut cli = cli::Cli::parse();
+    let mut cli = cli::Cli::<Vec<String>>::parse();
 
     octocrab::initialise(std::mem::take(&mut cli.auth).into_octocrab().await?);
 

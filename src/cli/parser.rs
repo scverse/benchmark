@@ -12,9 +12,9 @@ use super::octocrab_utils::auth_to_octocrab;
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
-pub(crate) struct Cli {
+pub(crate) struct Cli<T: Send + Clone + Sync> {
     #[command(subcommand)]
-    pub(crate) command: Commands,
+    pub(crate) command: Commands<T>,
 
     #[command(flatten)]
     pub(crate) auth: AuthInner,
@@ -69,11 +69,11 @@ impl TryFrom<AuthInner> for Auth {
 }
 
 #[derive(Subcommand)]
-pub(crate) enum Commands {
+pub(crate) enum Commands<T: Send + Clone + Sync> {
     /// Start web hook server
     Serve(ServeArgs),
     /// Run a single benchmark
-    Run(RunBenchmark),
+    Run(RunBenchmark<T>),
 }
 
 #[derive(Args)]
@@ -87,17 +87,17 @@ pub(crate) struct ServeArgs {
 }
 
 #[derive(Args, Debug, Clone, Deserialize, PartialEq, Eq)]
-pub(crate) struct RunBenchmark {
+pub(crate) struct RunBenchmark<T: Send + Clone + Sync> {
     /// Repository containing ASV benchmarks (in scverse org)
     pub repo: String,
     /// Branch or commit to use benchmark configuration from
     #[arg(long, short)]
     pub config_ref: Option<String>,
     /// Which refs in the target repository to run benchmarks on (default: default branch)
-    pub run_on: Vec<String>,
+    pub run_on: T,
 }
 
-impl Display for RunBenchmark {
+impl<T: Send + Clone + Sync> Display for RunBenchmark<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{ORG}/{}", self.repo)?;
         if let Some(config_ref) = &self.config_ref {

@@ -13,7 +13,10 @@ use crate::cli::RunBenchmark;
 use crate::repo_cache::sync_repo;
 
 /// Sync repo to match remote’s branch, and run ASV afterwards.
-pub(crate) async fn sync_repo_and_run(req: &RunBenchmark) -> Result<PathBuf> {
+pub(crate) async fn sync_repo_and_run<T>(req: &RunBenchmark<T>) -> Result<PathBuf>
+where
+    T: AsRef<[String]> + Clone + Send + Sync,
+{
     let (repo, config_ref) = {
         let RunBenchmark {
             repo, config_ref, ..
@@ -21,7 +24,7 @@ pub(crate) async fn sync_repo_and_run(req: &RunBenchmark) -> Result<PathBuf> {
         tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??
     };
     tracing::info!("Synced config repo to {:?} @ {config_ref}", repo.path());
-    let wd = run_benchmark(repo, &req.run_on).await?;
+    let wd = run_benchmark(repo, req.run_on.as_ref()).await?;
     Ok(wd)
 }
 

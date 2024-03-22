@@ -6,10 +6,7 @@ use crate::event::Compare;
 use crate::octocrab_utils::PageExt;
 
 pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
-    // TODO: as above
-    let [_before, after] = cmp.run_benchmark.run_on.as_slice() else {
-        panic!("run_on is not a slice of size 2");
-    };
+    let [_before, after] = &cmp.run_benchmark.run_on;
     let markdown = make(&cmp.run_benchmark.repo, after, markdown);
 
     tracing::info!(

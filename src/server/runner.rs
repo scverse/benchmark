@@ -45,10 +45,7 @@ async fn full_compare(cmp: &Compare) -> Result<String, anyhow::Error> {
 }
 
 async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
-    // TODO: distinguish on type level
-    let [before, after] = cmp.run_benchmark.run_on.as_slice() else {
-        panic!("run_on is not a slice of size 2");
-    };
+    let [before, after] = &cmp.run_benchmark.run_on;
     let output = asv_compare_command(wd, before, after).output().await?;
     if output.status.code() != Some(0) {
         return Err(anyhow::anyhow!("asv compare exited with {}", output.status));
