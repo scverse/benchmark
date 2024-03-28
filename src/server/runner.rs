@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::process::Output;
 
 use anyhow::Result;
 use futures::{channel::mpsc::Receiver, StreamExt};
@@ -49,11 +50,18 @@ async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
     let [before, after] = cmp.run_benchmark.run_on.as_slice() else {
         panic!("run_on is not a slice of size 2");
     };
-    let output = asv_compare_command(wd, before, after).output().await?;
-    if output.status.code() != Some(0) {
-        return Err(anyhow::anyhow!("asv compare exited with {}", output.status));
+    let Output {
+        stdout,
+        stderr,
+        status,
+    } = asv_compare_command(wd, before, after).output().await?;
+    if status.code() != Some(0) {
+        return Err(anyhow::anyhow!(
+            "asv compare exited with {status}:\n{}",
+            String::from_utf8_lossy(&stderr)
+        ));
     }
-    let table_md = String::from_utf8(output.stdout)?;
+    let table_md = String::from_utf8(stdout)?;
     comment::update(cmp, &table_md).await?;
     Ok(table_md)
 }
