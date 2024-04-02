@@ -1,6 +1,6 @@
 #![warn(clippy::pedantic)]
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::Parser;
 
 mod benchmark;
