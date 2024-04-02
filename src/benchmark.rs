@@ -35,10 +35,36 @@ pub(crate) fn asv_command(wd: &Path) -> Command {
     command
 }
 
-pub(crate) fn asv_compare_command(wd: &Path, left: &str, right: &str) -> Command {
-    let mut command = asv_command(wd);
-    command.args(["compare", "--only-changed", left, right]);
-    command
+#[derive(Default, Debug, Clone)]
+pub(crate) struct AsvCompare {
+    wd: PathBuf,
+    left: String,
+    right: String,
+    only_changed: bool,
+}
+
+impl AsvCompare {
+    pub fn new(wd: &Path, left: &str, right: &str) -> Self {
+        Self {
+            wd: wd.to_path_buf(),
+            left: left.into(),
+            right: right.into(),
+            only_changed: true,
+        }
+    }
+    pub fn only_changed(&mut self, only_changed: bool) -> &mut Self {
+        self.only_changed = only_changed;
+        self
+    }
+    pub fn command(&self) -> Command {
+        let mut command = asv_command(&self.wd);
+        command.arg("compare");
+        if self.only_changed {
+            command.arg("--only-changed");
+        }
+        command.args([&self.left, &self.right]);
+        command
+    }
 }
 
 async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf> {

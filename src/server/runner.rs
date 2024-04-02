@@ -5,7 +5,7 @@ use anyhow::Result;
 use futures::{channel::mpsc::Receiver, StreamExt};
 use tracing::Instrument;
 
-use crate::benchmark::{asv_compare_command, sync_repo_and_run};
+use crate::benchmark::{sync_repo_and_run, AsvCompare};
 use crate::constants::ORG;
 use crate::event::{Compare, Event};
 
@@ -50,7 +50,8 @@ async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
         stdout,
         stderr,
         status,
-    } = asv_compare_command(wd, &cmp.commits[0], &cmp.commits[1])
+    } = AsvCompare::new(wd, &cmp.commits[0], &cmp.commits[1])
+        .command()
         .output()
         .await?;
     if status.code() != Some(0) {
