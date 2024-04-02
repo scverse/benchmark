@@ -31,14 +31,7 @@ async fn main() -> Result<()> {
             let wd = benchmark::sync_repo_and_run(&args).await?;
             // if exactly two are specified, show a comparison
             if let [before, after] = args.run_on.as_slice() {
-                benchmark::AsvCompare::new(&wd, before, after)
-                    .command()
-                    .spawn()?
-                    .wait()
-                    .await?
-                    .success()
-                    .then_some(())
-                    .ok_or_else(|| anyhow!("asv compare failed"))?;
+                benchmark::AsvCompare::new(&wd, before, after).run().await?;
             }
         }
     }

@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::process::Output;
 
 use anyhow::Result;
 use futures::{channel::mpsc::Receiver, StreamExt};
@@ -46,21 +45,9 @@ async fn full_compare(cmp: &Compare) -> Result<String, anyhow::Error> {
 }
 
 async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
-    let Output {
-        stdout,
-        stderr,
-        status,
-    } = AsvCompare::new(wd, &cmp.commits[0], &cmp.commits[1])
-        .command()
-        .output()
-        .await?;
-    if status.code() != Some(0) {
-        return Err(anyhow::anyhow!(
-            "asv compare exited with {status}:\n{}",
-            String::from_utf8_lossy(&stderr)
-        ));
-    }
-    let table_md = String::from_utf8(stdout)?;
-    comment::update(cmp, &table_md).await?;
-    Ok(table_md)
+    let mut compare = AsvCompare::new(wd, &cmp.commits[0], &cmp.commits[1]);
+    // Update comment with short comparison
+    comment::update(cmp, &compare.output().await?).await?;
+    // Return full comparison
+    compare.only_changed(false).output().await
 }

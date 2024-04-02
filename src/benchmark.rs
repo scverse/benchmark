@@ -2,9 +2,9 @@
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::process::{Output, Stdio};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
@@ -56,7 +56,7 @@ impl AsvCompare {
         self.only_changed = only_changed;
         self
     }
-    pub fn command(&self) -> Command {
+    fn command(&self) -> Command {
         let mut command = asv_command(&self.wd);
         command.arg("compare");
         if self.only_changed {
@@ -64,6 +64,29 @@ impl AsvCompare {
         }
         command.args([&self.left, &self.right]);
         command
+    }
+    pub async fn run(&self) -> Result<()> {
+        self.command()
+            .spawn()?
+            .wait()
+            .await?
+            .success()
+            .then_some(())
+            .ok_or_else(|| anyhow!("asv compare failed"))
+    }
+    pub async fn output(&self) -> Result<String> {
+        let Output {
+            stdout,
+            stderr,
+            status,
+        } = self.command().output().await?;
+        if status.code() == Some(0) {
+            return Ok(String::from_utf8(stdout)?);
+        }
+        Err(anyhow::anyhow!(
+            "asv compare exited with {status}:\n{}",
+            String::from_utf8_lossy(&stderr)
+        ))
     }
 }
 
