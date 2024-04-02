@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.80"
+askama = "0.12.1"
 axum = { version = "0.7.4", features = ["http2", "tokio", "tracing", "macros"] }
 axum-github-webhook-extract = "0.2.0"
 chrono = "0.4.34"

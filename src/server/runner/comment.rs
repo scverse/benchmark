@@ -1,12 +1,13 @@
 use anyhow::Result;
-use chrono::Utc;
+use askama::Template;
+use chrono::{DateTime, Utc};
 
 use crate::constants::{is_pr_comparison, ORG, PR_COMPARISON_MARKER};
 use crate::event::Compare;
 use crate::octocrab_utils::PageExt;
 
 pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
-    let markdown = make(&cmp.repo, &cmp.commits[1], markdown);
+    let markdown = make(cmp, markdown)?;
 
     tracing::info!("Updating comment for {ORG}/{}’s PR {}", cmp.repo, cmp.pr);
     let github_api = octocrab::instance();
@@ -27,23 +28,59 @@ pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
     Ok(())
 }
 
-fn make(repo: &str, after: &str, markdown: &str) -> String {
-    let content = if markdown.is_empty() {
-        "No changes in benchmarks.".to_owned()
-    } else {
-        format!("## Benchmark changes\n\n{markdown}")
-    };
-    let now = Utc::now();
-    let t_iso = now.to_rfc3339();
-    let t_human = now.to_rfc2822();
-    format!(
-        r#"
-{PR_COMPARISON_MARKER}
+#[derive(Template)]
+#[template(path = "comment.md.j2", escape = "none")]
+struct Comment<'a> {
+    pr_comparison_marker: &'a str,
+    content: &'a str,
+    now: DateTime<Utc>,
+    cmp: &'a Compare,
+}
 
-{content}
+fn make(cmp: &Compare, content: &str) -> Result<String> {
+    Ok(Comment {
+        pr_comparison_marker: PR_COMPARISON_MARKER,
+        content,
+        cmp,
+        now: Utc::now(),
+    }
+    .render()?)
+}
 
-Latest commit: <https://github.com/scverse/{repo}/commit/{after}>
-Last changed: <time datetime="{t_iso}">{t_human}</time>
-"#,
-    )
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make_empty() {
+        let cmp = Compare {
+            repo: "repo1".to_owned(),
+            pr: 1,
+            commits: ["a".to_owned(), "b".to_owned()],
+            check_id: None,
+        };
+        let markdown = make(&cmp, "").unwrap();
+        assert!(markdown.contains(PR_COMPARISON_MARKER));
+        assert!(!markdown.contains("## Benchmark changes"));
+        assert!(markdown.contains("No changes in benchmarks."));
+        assert!(!markdown.contains("More details:"));
+    }
+
+    #[test]
+    fn test_make_filled() {
+        let cmp = Compare {
+            repo: "repo2".to_owned(),
+            pr: 2,
+            commits: ["c".to_owned(), "d".to_owned()],
+            check_id: Some(3.into()),
+        };
+        let content = "Some | table";
+        let markdown = make(&cmp, content).unwrap();
+        assert!(markdown.contains(PR_COMPARISON_MARKER));
+        assert!(markdown.contains("## Benchmark changes"));
+        assert!(markdown.contains(content));
+        assert!(markdown.contains(
+            "More details: <https://github.com/scverse/benchmark/pull/2/checks?check_run_id=3>"
+        ));
+    }
 }

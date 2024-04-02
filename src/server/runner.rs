@@ -1,11 +1,10 @@
 use std::path::Path;
-use std::process::Output;
 
 use anyhow::Result;
 use futures::{channel::mpsc::Receiver, StreamExt};
 use tracing::Instrument;
 
-use crate::benchmark::{asv_compare_command, sync_repo_and_run};
+use crate::benchmark::{sync_repo_and_run, AsvCompare};
 use crate::constants::ORG;
 use crate::event::{Compare, Event};
 
@@ -46,20 +45,11 @@ async fn full_compare(cmp: &Compare) -> Result<String, anyhow::Error> {
 }
 
 async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
-    let Output {
-        stdout,
-        stderr,
-        status,
-    } = asv_compare_command(wd, &cmp.commits[0], &cmp.commits[1])
-        .output()
+    let mut compare = AsvCompare::new(wd, &cmp.commits[0], &cmp.commits[1]);
+    // Update comment with short comparison
+    comment::update(cmp, &compare.output().await?)
+        .instrument(tracing::info_span!("comment_update"))
         .await?;
-    if status.code() != Some(0) {
-        return Err(anyhow::anyhow!(
-            "asv compare exited with {status}:\n{}",
-            String::from_utf8_lossy(&stderr)
-        ));
-    }
-    let table_md = String::from_utf8(stdout)?;
-    comment::update(cmp, &table_md).await?;
-    Ok(table_md)
+    // Return full comparison
+    compare.only_changed(false).output().await
 }

@@ -2,9 +2,9 @@
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
+use std::process::{Output, Stdio};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
@@ -35,10 +35,59 @@ pub(crate) fn asv_command(wd: &Path) -> Command {
     command
 }
 
-pub(crate) fn asv_compare_command(wd: &Path, left: &str, right: &str) -> Command {
-    let mut command = asv_command(wd);
-    command.args(["compare", "--only-changed", left, right]);
-    command
+#[derive(Default, Debug, Clone)]
+pub(crate) struct AsvCompare {
+    wd: PathBuf,
+    left: String,
+    right: String,
+    only_changed: bool,
+}
+
+impl AsvCompare {
+    pub fn new(wd: &Path, left: &str, right: &str) -> Self {
+        Self {
+            wd: wd.to_path_buf(),
+            left: left.into(),
+            right: right.into(),
+            only_changed: true,
+        }
+    }
+    pub fn only_changed(&mut self, only_changed: bool) -> &mut Self {
+        self.only_changed = only_changed;
+        self
+    }
+    fn command(&self) -> Command {
+        let mut command = asv_command(&self.wd);
+        command.arg("compare");
+        if self.only_changed {
+            command.arg("--only-changed");
+        }
+        command.args([&self.left, &self.right]);
+        command
+    }
+    pub async fn run(&self) -> Result<()> {
+        self.command()
+            .spawn()?
+            .wait()
+            .await?
+            .success()
+            .then_some(())
+            .ok_or_else(|| anyhow!("asv compare failed"))
+    }
+    pub async fn output(&self) -> Result<String> {
+        let Output {
+            stdout,
+            stderr,
+            status,
+        } = self.command().output().await?;
+        if status.code() == Some(0) {
+            return Ok(String::from_utf8(stdout)?);
+        }
+        Err(anyhow::anyhow!(
+            "asv compare exited with {status}:\n{}",
+            String::from_utf8_lossy(&stderr)
+        ))
+    }
 }
 
 async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf> {
