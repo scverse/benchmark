@@ -18,9 +18,8 @@ use octocrab::{
 };
 use tower_http::trace::TraceLayer;
 
-use crate::constants::BENCHMARK_LABEL;
+use crate::constants::{BENCHMARK_LABEL, ORG};
 use crate::event::{Compare, Event, PullRequestEvent};
-use crate::{cli::RunBenchmark, constants::ORG};
 
 use super::octocrab_utils::ref_exists;
 
@@ -60,16 +59,11 @@ async fn handle(
     {
         return Ok("skipped: missing benchmark label".to_owned());
     }
-    let run_benchmark = RunBenchmark {
-        repo: repository.name,
-        config_ref: Some(pr.head.sha.clone()),
-        run_on: vec![pr.base.sha, pr.head.sha.clone()],
-    };
 
     let github_client = octocrab::instance();
-    let checks = github_client.checks(ORG, &run_benchmark.repo);
+    let checks = github_client.checks(ORG, &repository.name);
     let check_id = checks
-        .create_check_run("benchmark", pr.head.sha)
+        .create_check_run("benchmark", &pr.head.sha)
         .status(CheckRunStatus::Queued)
         .send()
         .await
@@ -78,7 +72,8 @@ async fn handle(
         .ok();
     handle_enqueue(
         Compare {
-            run_benchmark,
+            repo: repository.name,
+            commits: [pr.base.sha, pr.head.sha],
             pr: pr.number,
             check_id,
         },
@@ -92,7 +87,7 @@ async fn handle_enqueue(
     event: Compare,
     mut state: AppState,
 ) -> Result<String, (StatusCode, String)> {
-    let ref_exists = ref_exists(&state.github_client, &event.run_benchmark)
+    let ref_exists = ref_exists(&state.github_client, &event.repo, &event.commits[1])
         .await
         .map_err(|e| {
             tracing::error!("Enqueue failed: {e:?}");
@@ -111,8 +106,8 @@ async fn handle_enqueue(
             })
     } else {
         let msg = format!(
-            "{} is not a valid repo/ref combination",
-            event.run_benchmark
+            "{}/{} is not a valid repo/ref combination",
+            event.repo, event.commits[1]
         );
         tracing::info!("Enqueue failed: {msg}");
         Err((StatusCode::BAD_REQUEST, msg))

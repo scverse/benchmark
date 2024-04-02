@@ -9,19 +9,22 @@ use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-use crate::cli::RunBenchmark;
 use crate::repo_cache::sync_repo;
+use crate::traits::RunConfig;
 
 /// Sync repo to match remote’s branch, and run ASV afterwards.
-pub(crate) async fn sync_repo_and_run(req: &RunBenchmark) -> Result<PathBuf> {
+pub(crate) async fn sync_repo_and_run<R>(req: &R) -> Result<PathBuf>
+where
+    R: RunConfig + Send + Sync + Clone,
+{
     let (repo, config_ref) = {
-        let RunBenchmark {
-            repo, config_ref, ..
-        } = req.clone();
+        // clone data used in the thread
+        let repo = req.repo().to_owned();
+        let config_ref = req.config_ref().map(str::to_owned);
         tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??
     };
     tracing::info!("Synced config repo to {:?} @ {config_ref}", repo.path());
-    let wd = run_benchmark(repo, &req.run_on).await?;
+    let wd = run_benchmark(repo, req.run_on()).await?;
     Ok(wd)
 }
 

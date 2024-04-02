@@ -12,6 +12,7 @@ mod fixtures;
 mod octocrab_utils;
 mod repo_cache;
 mod server;
+mod traits;
 mod utils;
 
 #[tokio::main]

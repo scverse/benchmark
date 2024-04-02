@@ -3,7 +3,7 @@ use futures::{stream, StreamExt, TryStreamExt};
 use lazy_static::lazy_static;
 use octocrab::{params::repos::Reference, GitHubError};
 
-use crate::{cli::RunBenchmark, constants::ORG};
+use crate::constants::ORG;
 
 lazy_static! {
     static ref SHA1_RE: regex::Regex = regex::Regex::new(r"^[a-f0-9]{40}$").unwrap();
@@ -11,25 +11,21 @@ lazy_static! {
 
 pub(super) async fn ref_exists(
     github_client: &octocrab::Octocrab,
-    RunBenchmark {
-        config_ref, repo, ..
-    }: &RunBenchmark,
+    repo: &str,
+    git_ref: &str,
 ) -> Result<bool> {
-    let Some(config_ref) = config_ref.as_ref() else {
-        return Ok(true);
-    };
-    if SHA1_RE.is_match(config_ref) {
+    if SHA1_RE.is_match(git_ref) {
         return Ok(github_client
             .commits(ORG, repo)
-            .get(config_ref)
+            .get(git_ref)
             .await
             .found()
             .context("failed to check if commit exists")?
             .is_some());
     }
     stream::iter([
-        Reference::Branch(config_ref.to_owned()),
-        Reference::Tag(config_ref.to_owned()),
+        Reference::Branch(git_ref.to_owned()),
+        Reference::Tag(git_ref.to_owned()),
     ])
     .then(|reference| async move {
         github_client

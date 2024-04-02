@@ -5,7 +5,7 @@ use anyhow::Result;
 use secrecy::SecretString;
 use std::fmt::Display;
 
-use crate::{constants::ORG, utils::get_credential};
+use crate::{constants::ORG, traits::RunConfig, utils::get_credential};
 
 use super::octocrab_utils::auth_to_octocrab;
 
@@ -104,5 +104,17 @@ impl Display for RunBenchmark {
             write!(f, "@{config_ref}")?;
         }
         Ok(())
+    }
+}
+
+impl RunConfig for RunBenchmark {
+    fn repo(&self) -> &str {
+        &self.repo
+    }
+    fn config_ref(&self) -> Option<&str> {
+        self.config_ref.as_deref()
+    }
+    fn run_on(&self) -> &[String] {
+        self.run_on.as_slice()
     }
 }
