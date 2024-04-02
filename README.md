@@ -65,6 +65,16 @@ All these currently assume you have a <samp>&lt;user></samp> login with sudo rig
    scvbench$ sudo systemctl enable --now benchmark
    ```
 
+Further steps:
+1. Setup chrony (<samp>/etc/chrony.conf</samp>) to use internal servers
+
+   ```ini
+   server 146.107.1.13 trust
+   server 146.107.5.10
+   ```
+
+2. [Performance setup](https://github.com/scverse/benchmark/issues/1)
+
 ### Deployment
 1. Make changes in <samp>&lt;branch></samp> (either <samp>main</samp> or a PR branch) and wait until CI finishes.
 2. Run `nu scripts/deploy.nu <branch> --user=<user>`.
