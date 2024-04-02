@@ -12,13 +12,14 @@ mod fixtures;
 mod octocrab_utils;
 mod repo_cache;
 mod server;
+mod traits;
 mod utils;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     cli::init_tracing();
 
-    let mut cli = cli::Cli::<Vec<String>>::parse();
+    let mut cli = cli::Cli::parse();
 
     octocrab::initialise(std::mem::take(&mut cli.auth).into_octocrab().await?);
 

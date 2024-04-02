@@ -6,16 +6,11 @@ use crate::event::Compare;
 use crate::octocrab_utils::PageExt;
 
 pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
-    let [_before, after] = &cmp.run_benchmark.run_on;
-    let markdown = make(&cmp.run_benchmark.repo, after, markdown);
+    let markdown = make(&cmp.repo, &cmp.commits[1], markdown);
 
-    tracing::info!(
-        "Updating comment for {ORG}/{}’s PR {}",
-        cmp.run_benchmark.repo,
-        cmp.pr
-    );
+    tracing::info!("Updating comment for {ORG}/{}’s PR {}", cmp.repo, cmp.pr);
     let github_api = octocrab::instance();
-    let issue_api = github_api.issues(ORG, &cmp.run_benchmark.repo);
+    let issue_api = github_api.issues(ORG, &cmp.repo);
     if let Some(comment) = issue_api
         .list_comments(cmp.pr)
         .send()

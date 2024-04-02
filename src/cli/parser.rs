@@ -5,16 +5,16 @@ use anyhow::Result;
 use secrecy::SecretString;
 use std::fmt::Display;
 
-use crate::{constants::ORG, utils::get_credential};
+use crate::{constants::ORG, traits::RunConfig, utils::get_credential};
 
 use super::octocrab_utils::auth_to_octocrab;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
-pub(crate) struct Cli<T: Send + Clone + Sync> {
+pub(crate) struct Cli {
     #[command(subcommand)]
-    pub(crate) command: Commands<T>,
+    pub(crate) command: Commands,
 
     #[command(flatten)]
     pub(crate) auth: AuthInner,
@@ -69,11 +69,11 @@ impl TryFrom<AuthInner> for Auth {
 }
 
 #[derive(Subcommand)]
-pub(crate) enum Commands<T: Send + Clone + Sync> {
+pub(crate) enum Commands {
     /// Start web hook server
     Serve(ServeArgs),
     /// Run a single benchmark
-    Run(RunBenchmark<T>),
+    Run(RunBenchmark),
 }
 
 #[derive(Args)]
@@ -87,22 +87,34 @@ pub(crate) struct ServeArgs {
 }
 
 #[derive(Args, Debug, Clone, Deserialize, PartialEq, Eq)]
-pub(crate) struct RunBenchmark<T: Send + Clone + Sync> {
+pub(crate) struct RunBenchmark {
     /// Repository containing ASV benchmarks (in scverse org)
     pub repo: String,
     /// Branch or commit to use benchmark configuration from
     #[arg(long, short)]
     pub config_ref: Option<String>,
     /// Which refs in the target repository to run benchmarks on (default: default branch)
-    pub run_on: T,
+    pub run_on: Vec<String>,
 }
 
-impl<T: Send + Clone + Sync> Display for RunBenchmark<T> {
+impl Display for RunBenchmark {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{ORG}/{}", self.repo)?;
         if let Some(config_ref) = &self.config_ref {
             write!(f, "@{config_ref}")?;
         }
         Ok(())
+    }
+}
+
+impl RunConfig for RunBenchmark {
+    fn repo(&self) -> &str {
+        &self.repo
+    }
+    fn config_ref(&self) -> Option<&str> {
+        self.config_ref.as_deref()
+    }
+    fn run_on(&self) -> &[String] {
+        self.run_on.as_slice()
     }
 }

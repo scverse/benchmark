@@ -16,7 +16,6 @@ use wiremock::{
     Mock, MockServer, ResponseTemplate,
 };
 
-use crate::cli::RunBenchmark;
 use crate::constants::ORG;
 use crate::event::{Compare, Event, PullRequestEvent};
 use crate::fixtures::{COMMIT, PR};
@@ -164,9 +163,9 @@ async fn should_enqueue_valid_pr_event() {
     let evt: PullRequestEvent = serde_json::from_str(PR).unwrap();
     // expected event payload
     let sha_base: &str = evt.pull_request.base.sha.as_ref();
-    let sha_after: &str = evt.pull_request.head.sha.as_ref();
+    let sha_head: &str = evt.pull_request.head.sha.as_ref();
     let commit_after: Commit = serde_json::from_str(COMMIT).unwrap();
-    assert_eq!(commit_after.sha, sha_after);
+    assert_eq!(commit_after.sha, sha_head);
     let template = ResponseTemplate::new(200).set_body_json(commit_after);
     let (app, mut recv) = app(Some(template)).await;
     let request = make_webhook_request(serde_json::to_string(&evt).unwrap(), true);
@@ -174,17 +173,9 @@ async fn should_enqueue_valid_pr_event() {
 
     let body = assert_status_eq(res, StatusCode::OK).await;
     assert_eq!(body, "enqueued");
-    let run_benchmark = RunBenchmark {
-        repo: evt.repository.name,
-        config_ref: Some(sha_after.to_owned()),
-        run_on: [
-            // pull request base, not `before`
-            sha_base.to_owned(),
-            sha_after.to_owned(),
-        ],
-    };
     let evt = Compare {
-        run_benchmark,
+        repo: evt.repository.name,
+        commits: [sha_base.to_owned(), sha_head.to_owned()],
         pr: evt.pull_request.number,
         check_id: None,
     };

@@ -26,9 +26,9 @@ pub(crate) async fn runner(mut receiver: Receiver<Event>) {
 async fn handle_event(event: Event) -> Result<()> {
     match event {
         Event::Compare(ref cmp) => {
-            tracing::info!("Comparing {:?} for PR {}", cmp.run_benchmark.run_on, cmp.pr);
+            tracing::info!("Comparing {:?} for PR {}", cmp.commits, cmp.pr);
             let github_client = octocrab::instance();
-            let checks_handler = github_client.checks(ORG, &cmp.run_benchmark.repo);
+            let checks_handler = github_client.checks(ORG, &cmp.repo);
             if let Some(check_id) = cmp.check_id {
                 checks::with_check(checks_handler, check_id, || full_compare(cmp)).await?;
             } else {
@@ -40,13 +40,14 @@ async fn handle_event(event: Event) -> Result<()> {
 }
 
 async fn full_compare(cmp: &Compare) -> Result<String, anyhow::Error> {
-    let wd = sync_repo_and_run(&cmp.run_benchmark).await?;
+    let wd = sync_repo_and_run(cmp).await?;
     compare(&wd, cmp).await
 }
 
 async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
-    let [before, after] = &cmp.run_benchmark.run_on;
-    let output = asv_compare_command(wd, before, after).output().await?;
+    let output = asv_compare_command(wd, &cmp.commits[0], &cmp.commits[1])
+        .output()
+        .await?;
     if output.status.code() != Some(0) {
         return Err(anyhow::anyhow!("asv compare exited with {}", output.status));
     }
