@@ -47,7 +47,9 @@ async fn full_compare(cmp: &Compare) -> Result<String, anyhow::Error> {
 async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
     let mut compare = AsvCompare::new(wd, &cmp.commits[0], &cmp.commits[1]);
     // Update comment with short comparison
-    comment::update(cmp, &compare.output().await?).await?;
+    comment::update(cmp, &compare.output().await?)
+        .instrument(tracing::info_span!("comment_update"))
+        .await?;
     // Return full comparison
     compare.only_changed(false).output().await
 }

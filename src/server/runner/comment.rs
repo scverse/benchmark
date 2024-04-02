@@ -6,7 +6,7 @@ use crate::event::Compare;
 use crate::octocrab_utils::PageExt;
 
 pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
-    let markdown = make(&cmp.repo, &cmp.commits[1], markdown);
+    let markdown = make(cmp, markdown);
 
     tracing::info!("Updating comment for {ORG}/{}’s PR {}", cmp.repo, cmp.pr);
     let github_api = octocrab::instance();
@@ -27,23 +27,35 @@ pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
     Ok(())
 }
 
-fn make(repo: &str, after: &str, markdown: &str) -> String {
+fn make(cmp: &Compare, markdown: &str) -> String {
     let content = if markdown.is_empty() {
         "No changes in benchmarks.".to_owned()
     } else {
         format!("## Benchmark changes\n\n{markdown}")
     };
+    let Compare {
+        repo,
+        commits: [before, after],
+        check_id,
+        pr,
+    } = cmp;
     let now = Utc::now();
     let t_iso = now.to_rfc3339();
     let t_human = now.to_rfc2822();
+    let check_content = if let Some(check_id) = check_id {
+        format!("More details: <https://github.com/scverse/benchmark/pull/{pr}/checks?check_run_id={check_id}>")
+    } else {
+        String::new()
+    };
     format!(
         r#"
 {PR_COMPARISON_MARKER}
 
 {content}
 
-Latest commit: <https://github.com/scverse/{repo}/commit/{after}>
+Comparison: <https://github.com/scverse/{repo}/compare/{before}..{after}>
 Last changed: <time datetime="{t_iso}">{t_human}</time>
+{check_content}
 "#,
     )
 }
