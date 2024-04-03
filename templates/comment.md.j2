@@ -12,6 +12,6 @@ Comparison: <https://github.com/scverse/{{ cmp.repo }}/compare/{{ cmp.commits[0]
 Last changed: <time datetime="{{ now.to_rfc3339() }}">{{ now.to_rfc2822() }}</time>
 {% match cmp.check_id %}
 {% when Some with (check_id) %}
-More details: <https://github.com/scverse/benchmark/pull/{{ cmp.pr }}/checks?check_run_id={{ check_id }}>
+More details: <https://github.com/scverse/{{ cmp.repo }}/pull/{{ cmp.pr }}/checks?check_run_id={{ check_id }}>
 {% when None %}
 {% endmatch %}
