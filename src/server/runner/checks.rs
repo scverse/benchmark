@@ -7,6 +7,8 @@ use octocrab::{
     params::checks::{CheckRunConclusion, CheckRunOutput, CheckRunStatus},
 };
 
+use crate::server::octocrab_utils::clamp_lines;
+
 pub(super) async fn with_check<Fut>(
     checks: ChecksHandler<'_>,
     check_id: CheckRunId,
@@ -30,7 +32,7 @@ where
     let (conclusion, res) = match func().await {
         Ok(text) => {
             output.summary = "Benchmark run successful".to_owned();
-            output.text = Some(text.clone());
+            output.text = Some(clamp_lines(&text, u16::MAX.into()).to_owned());
             (CheckRunConclusion::Success, Ok(text))
         }
         Err(e) => {
