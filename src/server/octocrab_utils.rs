@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use octocrab::{params::repos::Reference, GitHubError};
 
 use crate::constants::ORG;
+use crate::nightly_backports::floor_char_boundary;
 
 lazy_static! {
     static ref SHA1_RE: regex::Regex = regex::Regex::new(r"^[a-f0-9]{40}$").unwrap();
@@ -60,6 +61,18 @@ impl<T> OctocrabOptional<T> for octocrab::Result<T> {
     }
 }
 
+pub(super) fn clamp_lines(text: &str, max_bytes: usize) -> &str {
+    if text.len() <= max_bytes {
+        return text;
+    }
+    let text = &text[..floor_char_boundary(text, max_bytes)];
+    if let Some(idx) = text.rfind('\n') {
+        &text[..idx] // clamp it to the last line fitting the limit
+    } else {
+        text // no lines here, clamp it wherever
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -69,5 +82,19 @@ mod tests {
         assert!(SHA1_RE.is_match("fb803f6392801d8c30dce7e5645a540ba74394fc"));
         assert!(!SHA1_RE.is_match("fb803f"));
         assert!(!SHA1_RE.is_match("xxxxxf6392801d8c30dce7e5645a540ba74394fc"));
+    }
+
+    #[test]
+    fn test_clamp_lines() {
+        assert_eq!(clamp_lines("foo\nbar\nbaz", 5), "foo");
+        assert_eq!(clamp_lines("foo\nbar\nbaz", 10), "foo\nbar");
+        assert_eq!(clamp_lines("foo\nbar\nbaz", 15), "foo\nbar\nbaz");
+    }
+
+    #[test]
+    /// Test that we clamp within lines but only at char boundaries
+    fn test_clamp_inline() {
+        assert_eq!(clamp_lines("foo xyz", 5), "foo x");
+        assert_eq!(clamp_lines("老虎", 5), "老");
     }
 }

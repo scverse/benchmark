@@ -9,6 +9,7 @@ mod constants;
 mod event;
 #[cfg(test)]
 mod fixtures;
+mod nightly_backports;
 mod octocrab_utils;
 mod repo_cache;
 mod server;
