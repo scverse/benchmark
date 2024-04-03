@@ -80,7 +80,7 @@ mod tests {
         assert!(markdown.contains("## Benchmark changes"));
         assert!(markdown.contains(content));
         assert!(markdown.contains(
-            "More details: <https://github.com/scverse/benchmark/pull/2/checks?check_run_id=3>"
+            "More details: <https://github.com/scverse/repo2/pull/2/checks?check_run_id=3>"
         ));
     }
 }
