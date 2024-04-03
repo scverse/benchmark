@@ -18,7 +18,7 @@ pub(crate) async fn runner(mut receiver: Receiver<Event>) {
             .instrument(tracing::info_span!("handle_event"))
             .await
         {
-            tracing::error!("{error}");
+            tracing::error!("Handle event error: {error:?}");
         }
     }
 }
