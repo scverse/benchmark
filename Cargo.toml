@@ -16,7 +16,10 @@ git2 = "0.18.2"
 http = "1.0.0"
 jsonwebtoken = "9.2.0"
 lazy_static = "1.4.0"
-octocrab = { version = "0.36.0", features = ["stream", "tracing"] }
+octocrab = { version = "0.37.0", features = [
+  "stream",
+  "tracing",
+], git = "https://github.com/flying-sheep/octocrab.git", branch = "fix-diff-entry" }
 regex = "1.10.3"
 secrecy = "0.8.0"
 serde = { version = "1.0.196", features = ["derive"] }
