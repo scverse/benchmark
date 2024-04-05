@@ -302,6 +302,7 @@ dependencies = [
  "axum-github-webhook-extract",
  "chrono",
  "clap",
+ "clap_lex",
  "directories",
  "futures",
  "git2",
