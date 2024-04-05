@@ -5,11 +5,15 @@ use clap_lex::OsStrExt;
 
 use super::asv_config::AsvConfig;
 
-#[derive(Debug, serde::Deserialize)]
-struct AsvResult {
+#[derive(Debug)]
+struct AsvResults {
     commit_hash: String,
-    result_columns: Vec<String>,
-    results: HashMap<String, Vec<serde_json::Value>>,
+    results: Vec<AsvResult>,
+}
+
+#[derive(Debug)]
+struct AsvResult {
+    name: String,
 }
 
 pub(super) fn compare(config: &AsvConfig, before: &str, after: &str) -> Result<()> {
@@ -30,7 +34,14 @@ pub(super) fn compare(config: &AsvConfig, before: &str, after: &str) -> Result<(
     Ok(())
 }
 
-fn find_commit(machine_dir: &Path, commit: &str) -> Result<AsvResult> {
+#[derive(Debug, serde::Deserialize)]
+struct AsvResultsRaw {
+    commit_hash: String,
+    result_columns: Vec<String>,
+    results: HashMap<String, Vec<serde_json::Value>>,
+}
+
+fn find_commit(machine_dir: &Path, commit: &str) -> Result<AsvResults> {
     for candidate in machine_dir
         .read_dir()?
         .filter_map(Result::ok)
@@ -38,7 +49,7 @@ fn find_commit(machine_dir: &Path, commit: &str) -> Result<AsvResult> {
         .map(|e| e.path())
     {
         let mut reader = BufReader::new(File::open(candidate)?);
-        let candidate: AsvResult = serde_json::from_reader(&mut reader)?;
+        let candidate: AsvResultsRaw = serde_json::from_reader(&mut reader)?;
         if candidate.commit_hash == commit {
             return Ok(candidate);
         }
