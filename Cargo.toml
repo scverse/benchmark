@@ -23,7 +23,9 @@ octocrab = { version = "0.37.0", features = [
 regex = "1.10.3"
 secrecy = "0.8.0"
 serde = { version = "1.0.196", features = ["derive"] }
+serde-inline-default = "0.2.0"
 serde_json5 = "0.1.0"
+tabled = "0.15.0"
 tap = "1.0.1"
 # macros, rt-multi-thread for #[tokio::main]
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "process"] }

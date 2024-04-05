@@ -1,16 +1,18 @@
 /// Run ASV
-use std::fs::File;
-use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
 
 use anyhow::{anyhow, bail, Context, Result};
-use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
+mod asv_config;
+mod compare_table;
+
 use crate::repo_cache::sync_repo;
 use crate::traits::RunConfig;
+
+use self::asv_config::AsvConfig;
 
 /// Sync repo to match remote’s branch, and run ASV afterwards.
 pub(crate) async fn sync_repo_and_run<R>(req: &R) -> Result<PathBuf>
@@ -131,16 +133,6 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf>
     Ok(wd)
 }
 
-#[derive(Deserialize)]
-struct AsvConfig {
-    #[serde(default = "default_branches")]
-    branches: Vec<String>,
-}
-
-fn default_branches() -> Vec<String> {
-    vec!["master".to_owned()]
-}
-
 fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<PathBuf> {
     let wd = {
         let wd = repo.workdir().context("no workdir")?;
@@ -150,12 +142,7 @@ fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<Pat
             wd.to_path_buf()
         }
     };
-    // read ASV config
-    let file = File::open(wd.join("asv.conf.json"))?;
-    let mut buffer = String::new();
-    let mut reader = BufReader::new(file);
-    reader.read_to_string(&mut buffer)?;
-    let config: AsvConfig = serde_json5::from_str(&buffer)?;
+    let config = AsvConfig::from_wd(&wd)?;
 
     {
         let mut remote = repo.find_remote("origin")?;
