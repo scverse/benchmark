@@ -22,6 +22,7 @@ async fn main() -> Result<()> {
 
     let mut cli = cli::Cli::parse();
 
+    // Set global octocrab instance, either using the provided auth or in --dry-run mode
     octocrab::initialise(std::mem::take(&mut cli.auth).try_into_octocrab().await?);
 
     match cli.command {
