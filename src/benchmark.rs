@@ -191,46 +191,52 @@ fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<Pat
     Ok(wd)
 }
 
-#[tokio::test]
-async fn test_resolve_env() -> Result<()> {
-    let resolved_envs =
-        resolve_env_from_stdout(Command::new("echo").arg("[\"env0\", \"env1\", \"env2\"]")).await?;
-    assert_eq!(resolved_envs[0], "env0");
-    assert_eq!(resolved_envs[1], "env1");
-    assert_eq!(resolved_envs[1], "env1");
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_resolve_env_empty_json() -> Result<()> {
-    let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[]")).await?;
-    assert_eq!(resolved_envs.len(), 0);
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_resolve_env_crash_integer_list() -> Result<()> {
-    let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[1, 2, 3]")).await;
-    match resolved_envs {
-        Ok(_) => panic!("Integer list is not an expected type"),
-        Err(e) => {
-            assert_eq!(
-                format!("{e:?}"),
-                "invalid type: integer `1`, expected a string"
-            );
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use core::panic;
+    #[tokio::test]
+    async fn test_resolve_env() -> Result<()> {
+        let resolved_envs =
+            resolve_env_from_stdout(Command::new("echo").arg("[\"env0\", \"env1\", \"env2\"]"))
+                .await?;
+        assert_eq!(resolved_envs[0], "env0");
+        assert_eq!(resolved_envs[1], "env1");
+        assert_eq!(resolved_envs[1], "env1");
+        Ok(())
     }
-    Ok(())
-}
 
-#[tokio::test]
-async fn test_resolve_env_crash_bad_command() -> Result<()> {
-    let resolved_envs = resolve_env_from_stdout(&mut Command::new("echolllll")).await;
-    match resolved_envs {
-        Ok(_) => panic!("echolllll should return an error"),
-        Err(e) => {
-            assert_eq!(format!("{e:?}"), "No such file or directory (os error 2)");
-        }
+    #[tokio::test]
+    async fn test_resolve_env_empty_json() -> Result<()> {
+        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[]")).await?;
+        assert_eq!(resolved_envs.len(), 0);
+        Ok(())
     }
-    Ok(())
+
+    #[tokio::test]
+    async fn test_resolve_env_crash_integer_list() -> Result<()> {
+        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[1, 2, 3]")).await;
+        match resolved_envs {
+            Ok(_) => panic!("Integer list is not an expected type"),
+            Err(e) => {
+                assert_eq!(
+                    format!("{e:?}"),
+                    "invalid type: integer `1`, expected a string"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_resolve_env_crash_bad_command() -> Result<()> {
+        let resolved_envs = resolve_env_from_stdout(&mut Command::new("echolllll")).await;
+        match resolved_envs {
+            Ok(_) => panic!("echolllll should return an error"),
+            Err(e) => {
+                assert_eq!(format!("{e:?}"), "No such file or directory (os error 2)");
+            }
+        }
+        Ok(())
+    }
 }
