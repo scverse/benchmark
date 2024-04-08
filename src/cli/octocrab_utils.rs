@@ -9,11 +9,8 @@ use crate::{
 
 use super::Auth;
 
-pub(super) async fn auth_to_octocrab<A>(auth: A) -> Result<octocrab::Octocrab>
-where
-    A: TryInto<Auth, Error = anyhow::Error> + Default,
-{
-    match auth.try_into()? {
+pub(super) async fn auth_to_octocrab(auth: Auth) -> Result<octocrab::Octocrab> {
+    match auth {
         cli::Auth::AppKey(app_key) => {
             let key = jsonwebtoken::EncodingKey::from_rsa_pem(app_key.expose_secret().as_bytes())?;
             let base = octocrab::Octocrab::builder().app(APP_ID, key).build()?;
