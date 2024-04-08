@@ -62,6 +62,7 @@ async fn handle(
 
     let github_client = octocrab::instance();
     let checks = github_client.checks(ORG, &repository.name);
+    // `.ok()` allows creating the check run creation to fail. We’ll not try to update it in that case.
     let check_id = checks
         .create_check_run("benchmark", &pr.head.sha)
         .status(CheckRunStatus::Queued)
