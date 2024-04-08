@@ -37,6 +37,7 @@ pub(crate) struct AuthInner {
 }
 
 impl AuthInner {
+    /// If app key or PAT has been set, use it, otherwise use default octocrab.
     pub(crate) async fn try_into_octocrab(self) -> Result<octocrab::Octocrab> {
         let auth: Option<Auth> = self.try_into()?;
         if let Some(auth) = auth {
