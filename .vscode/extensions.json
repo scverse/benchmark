@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer", // rust
+        "serayuzgur.crates", // dependency mgmt
+        "thenuprojectcontributors.vscode-nushell-lang", // debugging
+        "tamasfe.even-better-toml", // TOML
+        "samuelcolvin.jinjahtml", // askama templates
+        "vadimcn.vscode-lldb", // debugging
+    ],
+}
