@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::{channel::mpsc::Sender, SinkExt};
 use secrecy::{ExposeSecret, SecretString};
 use std::sync::Arc;
@@ -69,7 +69,8 @@ async fn handle(
         .send()
         .await
         .map(|c| c.id)
-        .map_err(|e| tracing::error!("{e}"))
+        .context("Failed to create check run")
+        .map_err(|e| tracing::error!("{e:?}"))
         .ok();
     handle_enqueue(
         Compare {
