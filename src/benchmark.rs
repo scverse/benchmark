@@ -208,15 +208,9 @@ mod tests {
     async fn test_resolve_env() {
         let resolved_envs =
             resolve_env_from_stdout(Command::new("echo").arg("[\"env0\", \"env1\", \"env2\"]"))
-                .await;
-        match resolved_envs {
-            Ok(v) => {
-                assert_eq!(v[0], "env0");
-                assert_eq!(v[1], "env1");
-                assert_eq!(v[1], "env1");
-            }
-            _ => panic!("Parsing unexpectedly failed for echo-ing a list of strings."),
-        }
+                .await
+                .expect("Parsing unexpectedly failed for echo-ing a list of strings.");
+        assert_eq!(resolved_envs, vec!["env0", "env1", "env2"]);
     }
 
     #[tokio::test]
@@ -233,15 +227,11 @@ mod tests {
     #[tokio::test]
     async fn test_resolve_env_crash_integer_list() {
         let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[1, 2, 3]")).await;
-        match resolved_envs {
-            Ok(_) => panic!("Integer list is not an expected type"),
-            Err(e) => {
-                assert_eq!(
-                    format!("{e:?}"),
-                    "invalid type: integer `1`, expected a string"
-                );
-            }
-        }
+        let e = resolved_envs.expect_err("Integer list is not an expected type");
+        assert_eq!(
+            format!("{e:?}"),
+            "invalid type: integer `1`, expected a string"
+        );
     }
 
     #[tokio::test]
