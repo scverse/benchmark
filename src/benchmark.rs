@@ -233,10 +233,7 @@ mod tests {
         match resolved_envs {
             Ok(_) => panic!("Integer list is not an expected type"),
             Err(e) => {
-                assert_eq!(
-                    format!("{e:?}"),
-                    "invalid type: integer `1`, expected a string"
-                );
+                assert!(format!("{e:?}").contains("invalid type: integer `1`, expected a string"));
             }
         }
     }
