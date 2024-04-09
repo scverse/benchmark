@@ -90,9 +90,17 @@ impl AsvCompare {
     }
 }
 
-pub async fn resolve_env() -> Result<Vec<String>> {
-    let env =
-        resolve_env_from_stdout(Command::new("python").args(["-m", "resolve_env.py"])).await?;
+pub async fn resolve_env(wd: &Path) -> Result<Vec<String>> {
+    tracing::info!("Resolving Environments: {:?}", wd);
+    let env = resolve_env_from_stdout(
+        Command::new("python")
+            .current_dir(wd)
+            .args([
+                "-c",
+                "import asv; import json; conf = asv.config.Config.load(\"asv.conf.json\"); env_names = [env.name for env in asv.environment.get_environments(conf, \"\")]; print(json.dumps(env_names))"
+            ]),
+    )
+    .await?;
     Ok(env)
 }
 
@@ -100,6 +108,7 @@ async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
     let stdout_env_specs_buffer = command.output().await?.stdout;
     let stdout_env_specs = String::from_utf8(stdout_env_specs_buffer)?;
     let parsed: Vec<String> = serde_json5::from_str(&stdout_env_specs)?;
+    tracing::info!("Found environments: {:?}", parsed);
     Ok(parsed)
 }
 
@@ -123,7 +132,7 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf>
     tracing::info!("Running asv in {}", wd.display());
     let mut command = asv_command(&wd);
     command.arg("run"); // This skips even if benchmarks changed: .arg("--skip-existing-commits");
-    let env_specs = resolve_env().await?;
+    let env_specs = resolve_env(&wd).await?;
     for env_spec in env_specs {
         command.args(["-E", &env_spec]);
     }
