@@ -92,13 +92,12 @@ impl AsvCompare {
 
 pub async fn resolve_env(wd: &Path) -> Result<Vec<String>> {
     tracing::info!("Resolving Environments: {:?}", wd);
-    let env = resolve_env_from_stdout(
+    resolve_env_from_stdout(
         Command::new("python")
             .current_dir(wd)
             .args(["-c", include_str!("resolve_env.py")]),
     )
-    .await?;
-    Ok(env)
+    .await
 }
 
 async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
