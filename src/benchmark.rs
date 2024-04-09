@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Context, Result};
-use core::panic;
 use serde::Deserialize;
 /// Run ASV
 use std::fs::File;
