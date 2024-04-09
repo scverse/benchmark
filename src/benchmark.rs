@@ -95,10 +95,7 @@ pub async fn resolve_env(wd: &Path) -> Result<Vec<String>> {
     let env = resolve_env_from_stdout(
         Command::new("python")
             .current_dir(wd)
-            .args([
-                "-c",
-                "import asv; import json; conf = asv.config.Config.load(\"asv.conf.json\"); env_names = [env.name for env in asv.environment.get_environments(conf, \"\")]; print(json.dumps(env_names))"
-            ]),
+            .args(["-c", include_str!("resolve_env.py")]),
     )
     .await?;
     Ok(env)
