@@ -205,25 +205,33 @@ mod tests {
     use super::*;
     use core::panic;
     #[tokio::test]
-    async fn test_resolve_env() -> Result<()> {
+    async fn test_resolve_env() {
         let resolved_envs =
             resolve_env_from_stdout(Command::new("echo").arg("[\"env0\", \"env1\", \"env2\"]"))
-                .await?;
-        assert_eq!(resolved_envs[0], "env0");
-        assert_eq!(resolved_envs[1], "env1");
-        assert_eq!(resolved_envs[1], "env1");
-        Ok(())
+                .await;
+        match resolved_envs {
+            Ok(v) => {
+                assert_eq!(v[0], "env0");
+                assert_eq!(v[1], "env1");
+                assert_eq!(v[1], "env1");
+            }
+            _ => panic!("Parsing unexpectedly failed for echo-ing a list of strings."),
+        }
     }
 
     #[tokio::test]
-    async fn test_resolve_env_empty_json() -> Result<()> {
-        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[]")).await?;
-        assert_eq!(resolved_envs.len(), 0);
-        Ok(())
+    async fn test_resolve_env_empty_json() {
+        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[]")).await;
+        match resolved_envs {
+            Ok(v) => {
+                assert_eq!(v.len(), 0);
+            }
+            _ => panic!("Parsing unexpectedly failed for echo-ing an empty list."),
+        }
     }
 
     #[tokio::test]
-    async fn test_resolve_env_crash_integer_list() -> Result<()> {
+    async fn test_resolve_env_crash_integer_list() {
         let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[1, 2, 3]")).await;
         match resolved_envs {
             Ok(_) => panic!("Integer list is not an expected type"),
@@ -234,11 +242,10 @@ mod tests {
                 );
             }
         }
-        Ok(())
     }
 
     #[tokio::test]
-    async fn test_resolve_env_crash_bad_command() -> Result<()> {
+    async fn test_resolve_env_crash_bad_command() {
         let resolved_envs = resolve_env_from_stdout(&mut Command::new("echolllll")).await;
         match resolved_envs {
             Ok(_) => panic!("echolllll should return an error"),
@@ -246,6 +253,5 @@ mod tests {
                 assert_eq!(format!("{e:?}"), "No such file or directory (os error 2)");
             }
         }
-        Ok(())
     }
 }
