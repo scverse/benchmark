@@ -104,7 +104,7 @@ pub async fn resolve_env(wd: &Path) -> Result<Vec<String>> {
 async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
     let stdout_env_specs_buffer = command.output().await?.stdout;
     let stdout_env_specs = String::from_utf8(stdout_env_specs_buffer)?;
-    let parsed: Vec<String> = serde_json5::from_str(&stdout_env_specs)?;
+    let parsed: Vec<String> = serde_json::from_str(&stdout_env_specs)?;
     tracing::info!("Found environments: {:?}", parsed);
     Ok(parsed)
 }
