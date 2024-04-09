@@ -4,7 +4,7 @@
 # cargo run -- --dry-run serve --secret-token "It's a Secret to Everybody"
 # ```
 #
-# and in another shell, after installing `jaq` and `libgcrypt`:
+# After installing `jaq` and `libgcrypt` in another nushell (activated via the `nu` command after installation), run the following:
 #
 # ```nushell
 # source test.nu
