@@ -45,9 +45,10 @@ All these currently assume you have a <samp>&lt;user></samp> login with sudo rig
 
    ```shell
    micromamba create -n asv -c conda-forge conda mamba virtualenv asv
-   micromamba activate asv
    micromamba run -n asv asv machine --yes
    ```
+
+   (use `micromamba activate asv` to make `asv` available in your PATH)
 
 2. Update `LoadCredentialEncrypted` lines in <samp>benchmark.service</samp> using
 
