@@ -1,12 +1,13 @@
-# Source this file using `source test.nu`, then run e.g.:
+# In one shell run:
 #
 # ```nushell
 # cargo run -- --dry-run serve --secret-token "It's a Secret to Everybody"
 # ```
 #
-# and in another shell:
+# After installing `jaq` and `libgcrypt` in another nushell (activated via the `nu` command after installation), run the following:
 #
 # ```nushell
+# source test.nu
 # gh-hook http://localhost:3000/ (open ./src/fixtures/test.hook-pr-sync.json) --full --allow-errors
 # ```
 
