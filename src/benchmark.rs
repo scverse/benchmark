@@ -199,7 +199,7 @@ fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<Pat
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::panic;
+
     #[tokio::test]
     async fn test_resolve_env() {
         let resolved_envs =
@@ -211,30 +211,25 @@ mod tests {
 
     #[tokio::test]
     async fn test_resolve_env_empty_json() {
-        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[]")).await;
-        match resolved_envs {
-            Ok(v) => {
-                assert_eq!(v.len(), 0);
-            }
-            _ => panic!("Parsing unexpectedly failed for echo-ing an empty list."),
-        }
+        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[]"))
+            .await
+            .expect("Parsing unexpectedly failed for echo-ing an empty list.");
+        assert_eq!(resolved_envs.len(), 0);
     }
 
     #[tokio::test]
     async fn test_resolve_env_crash_integer_list() {
-        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[1, 2, 3]")).await;
-        let e = resolved_envs.expect_err("Integer list is not an expected type");
+        let e = resolve_env_from_stdout(Command::new("echo").arg("[1, 2, 3]"))
+            .await
+            .expect_err("Integer list is not an expected type");
         assert!(format!("{e:?}").contains("invalid type: integer `1`, expected a string"));
     }
 
     #[tokio::test]
     async fn test_resolve_env_crash_bad_command() {
-        let resolved_envs = resolve_env_from_stdout(&mut Command::new("echolllll")).await;
-        match resolved_envs {
-            Ok(_) => panic!("echolllll should return an error"),
-            Err(e) => {
-                assert_eq!(format!("{e:?}"), "No such file or directory (os error 2)");
-            }
-        }
+        let e = resolve_env_from_stdout(&mut Command::new("echolllll"))
+            .await
+            .expect_err("echolllll should return an error");
+        assert!(format!("{e:?}").starts_with("No such file or directory (os error 2)"));
     }
 }
