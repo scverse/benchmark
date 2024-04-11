@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::{channel::mpsc::Sender, SinkExt};
 use secrecy::{ExposeSecret, SecretString};
 use std::sync::Arc;
@@ -62,13 +62,15 @@ async fn handle(
 
     let github_client = octocrab::instance();
     let checks = github_client.checks(ORG, &repository.name);
+    // `.ok()` allows creating the check run creation to fail. We’ll not try to update it in that case.
     let check_id = checks
         .create_check_run("benchmark", &pr.head.sha)
         .status(CheckRunStatus::Queued)
         .send()
         .await
         .map(|c| c.id)
-        .map_err(|e| tracing::error!("{e}"))
+        .context("Failed to create check run")
+        .map_err(|e| tracing::error!("{e:?}"))
         .ok();
     handle_enqueue(
         Compare {

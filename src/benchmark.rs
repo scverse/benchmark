@@ -92,6 +92,24 @@ impl AsvCompare {
     }
 }
 
+pub async fn resolve_env(wd: &Path) -> Result<Vec<String>> {
+    tracing::info!("Resolving Environments: {:?}", wd);
+    resolve_env_from_stdout(
+        Command::new("python")
+            .current_dir(wd)
+            .args(["-c", include_str!("resolve_env.py")]),
+    )
+    .await
+}
+
+async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
+    let stdout_env_specs_buffer = command.output().await?.stdout;
+    let stdout_env_specs = String::from_utf8(stdout_env_specs_buffer)?;
+    let parsed: Vec<String> = serde_json::from_str(&stdout_env_specs)?;
+    tracing::info!("Found environments: {:?}", parsed);
+    Ok(parsed)
+}
+
 async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf> {
     let wd = {
         let on = on.to_owned();
@@ -111,7 +129,11 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf>
 
     tracing::info!("Running asv in {}", wd.display());
     let mut command = asv_command(&wd);
-    command.arg("run").arg("--skip-existing-commits");
+    command.arg("run"); // This skips even if benchmarks changed: .arg("--skip-existing-commits");
+    let env_specs = resolve_env(&wd).await?;
+    for env_spec in env_specs {
+        command.args(["-E", &env_spec]);
+    }
     let mut child = if on.is_empty() {
         command.spawn().context("failed to spawn `asv run`")?
     } else {
@@ -159,4 +181,42 @@ fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<Pat
         remote.fetch(&refs, None, None)?;
     }
     Ok(wd)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_resolve_env() {
+        let resolved_envs =
+            resolve_env_from_stdout(Command::new("echo").arg("[\"env0\", \"env1\", \"env2\"]"))
+                .await
+                .expect("Parsing unexpectedly failed for echo-ing a list of strings.");
+        assert_eq!(resolved_envs, vec!["env0", "env1", "env2"]);
+    }
+
+    #[tokio::test]
+    async fn test_resolve_env_empty_json() {
+        let resolved_envs = resolve_env_from_stdout(Command::new("echo").arg("[]"))
+            .await
+            .expect("Parsing unexpectedly failed for echo-ing an empty list.");
+        assert_eq!(resolved_envs.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_resolve_env_crash_integer_list() {
+        let e = resolve_env_from_stdout(Command::new("echo").arg("[1, 2, 3]"))
+            .await
+            .expect_err("Integer list is not an expected type");
+        assert!(format!("{e:?}").contains("invalid type: integer `1`, expected a string"));
+    }
+
+    #[tokio::test]
+    async fn test_resolve_env_crash_bad_command() {
+        let e = resolve_env_from_stdout(&mut Command::new("echolllll"))
+            .await
+            .expect_err("echolllll should return an error");
+        assert!(format!("{e:?}").starts_with("No such file or directory (os error 2)"));
+    }
 }

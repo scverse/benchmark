@@ -48,6 +48,8 @@ All these currently assume you have a <samp>&lt;user></samp> login with sudo rig
    micromamba run -n asv asv machine --yes
    ```
 
+   (use `micromamba activate asv` to make `asv` available in your PATH)
+
 2. Update `LoadCredentialEncrypted` lines in <samp>benchmark.service</samp> using
 
    ```shell
@@ -82,3 +84,10 @@ Further steps:
    e.g. remove and re-add the <kbd>benchmark</kbd> label in [PR 11][].
 
 [PR 11]: https://github.com/scverse/benchmark/pull/11
+
+## Development
+
+For local development:
+
+1. Start the server locally
+2. use `scripts/test.nu` to send a payload (check the script for examples for both steps)

@@ -31,11 +31,20 @@ pub(crate) struct AuthInner {
     /// GitHub personal access token used to make API requests.
     #[arg(long, short = 't', env)]
     github_token: Option<SecretString>,
+
+    #[arg(long, short = 'n')]
+    dry_run: bool,
 }
 
 impl AuthInner {
-    pub(crate) async fn into_octocrab(self) -> Result<octocrab::Octocrab> {
-        auth_to_octocrab(self).await
+    /// If app key or PAT has been set, use it, otherwise use default octocrab.
+    pub(crate) async fn try_into_octocrab(self) -> Result<octocrab::Octocrab> {
+        let auth: Option<Auth> = self.try_into()?;
+        if let Some(auth) = auth {
+            auth_to_octocrab(auth).await
+        } else {
+            Ok(octocrab::Octocrab::default())
+        }
     }
 }
 
@@ -44,27 +53,29 @@ pub(crate) enum Auth {
     GitHubToken(SecretString),
 }
 
-impl TryFrom<AuthInner> for Auth {
+impl TryFrom<AuthInner> for Option<Auth> {
     type Error = anyhow::Error;
 
     /// If app key or token has been passed via CLI or env, use it, otherwise try to get as a credential.
     fn try_from(inner: AuthInner) -> Result<Self, Self::Error> {
-        Ok(if let Some(app_key) = inner.app_key {
+        if inner.dry_run {
+            return Ok(None);
+        }
+        Ok(Some(if let Some(app_key) = inner.app_key {
             tracing::info!("Using app key from CLI");
-            Self::AppKey(app_key)
+            Auth::AppKey(app_key)
         } else if let Some(github_token) = inner.github_token {
             tracing::info!("Using GitHub token from CLI");
-            Self::GitHubToken(github_token)
+            Auth::GitHubToken(github_token)
         } else if let Ok(app_key) = get_credential("app_key") {
             tracing::info!("Using app key from credential store");
-            Self::AppKey(app_key)
+            Auth::AppKey(app_key)
         } else if let Ok(github_token) = get_credential("github_token") {
             tracing::info!("Using GitHub token from credential store");
-            Self::GitHubToken(github_token)
+            Auth::GitHubToken(github_token)
         } else {
-            // This doesn’t happen when parsed from CLI, only when constructed using ::default()
-            anyhow::bail!("No credentials found");
-        })
+            anyhow::bail!("Neither credentials nor --dry-run passed");
+        }))
     }
 }
 
