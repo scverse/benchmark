@@ -19,7 +19,7 @@ def main [
 ] {
     let user = $user | default $env.USER
     let repo = 'scverse/benchmark'
-    let run = gh --repo $repo run list --branch $branch --workflow=rust.yml --event=pull_request --status=success --json=displayTitle,headSha,startedAt,databaseId | from json | get 0
+    let run = gh --repo $repo run list --branch $branch --workflow=rust.yml --status=success --json=displayTitle,headSha,startedAt,databaseId | from json | get 0
 
     echo $'Downloading artifact for ($run.displayTitle) at ($run.headSha | str substring ..7) from ($run.startedAt)'
     rm --force --permanent /tmp/benchmark
