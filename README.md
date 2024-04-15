@@ -82,8 +82,11 @@ Further steps:
 2. [Performance setup](https://github.com/scverse/benchmark/issues/1)
 
 ### Deployment
-1. > [!WARNING]
+1. Deploy
+
+   > [!WARNING]
    > TODO
+
 2. Trigger a run,
    e.g. remove and re-add the <kbd>benchmark</kbd> label in [PR 11][].
 
