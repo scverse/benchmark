@@ -9,6 +9,7 @@ authors = [
 urls.Source = "https://github.com/scverse/benchmark"
 readme = "README.md"
 dependencies = [
+    "typed-argument-parser",
 ]
 dynamic = ["version"]
 
@@ -16,6 +17,9 @@ dynamic = ["version"]
 test = [
     "pytest>=8.1",
 ]
+
+[project.scripts]
+scverse-benchmark = "scverse_benchmark._shared.cli:main"
 
 [tool.hatch.version]
 source = "vcs"
@@ -48,8 +52,11 @@ docstring-code-format = true
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D203",  # prefer 0 blank lines before class docstring
-    "D213",  # prefer multiline docstring summary on first line
+    "D203",   # prefer 0 blank lines before class docstring
+    "D213",   # prefer multiline docstring summary on first line
+    "ANN101", # don’t do type annotations for self in method
+    "C408",   # dict constructor usage is fine
+    "TID252", # relative imports are fine
 ]
 [tool.ruff.lint.isort]
 known-first-party = ["scverse_benchmark"]
