@@ -9,7 +9,7 @@ authors = [
 urls.Source = "https://github.com/scverse/benchmark"
 readme = "README.md"
 dependencies = [
-    "typed-argument-parser",
+    "typer",
 ]
 dynamic = ["version"]
 
@@ -19,7 +19,7 @@ test = [
 ]
 
 [project.scripts]
-scverse-benchmark = "scverse_benchmark._shared.cli:main"
+scverse-benchmark = "scverse_benchmark._shared.cli:app"
 
 [tool.hatch.version]
 source = "vcs"
@@ -43,6 +43,9 @@ filterwarnings = [
 testpaths = ["./tests"]
 xfail_strict = true
 
+[tool.pyright]
+reportRedeclaration = false
+
 [tool.ruff]
 src = ["src"]
 
@@ -56,6 +59,8 @@ ignore = [
     "D213",   # prefer multiline docstring summary on first line
     "ANN101", # don’t do type annotations for self in method
     "C408",   # dict constructor usage is fine
+    "COM812", # Leave trailing comma to formatter
+    "ISC001", # Leave single line string concat to formatter
     "TID252", # relative imports are fine
 ]
 [tool.ruff.lint.isort]

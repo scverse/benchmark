@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from ._shared.cli import main
+from ._shared.cli import app
 
-main()
+app()

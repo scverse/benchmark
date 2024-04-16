@@ -1,1 +1,1 @@
-"""Queue code accepting webhooks and pushing envents to a redis queue."""
+"""Queue code accepting webhooks and pushing events to a redis queue."""
