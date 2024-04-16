@@ -68,6 +68,7 @@ ignore = [
     "ANN101", # don’t do type annotations for self in method
     "C408",   # dict constructor usage is fine
     "COM812", # Leave trailing comma to formatter
+    "FIX002", # “TODO” comments are fine
     "ISC001", # Leave single line string concat to formatter
     "TID252", # relative imports are fine
 ]

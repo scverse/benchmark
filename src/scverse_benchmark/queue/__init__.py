@@ -10,4 +10,5 @@ if TYPE_CHECKING:
 
 async def start(*, broker: taskiq.AsyncBroker) -> None:
     """Listen for webhooks and push events to a redis queue."""
-    print(broker)  # noqa: T201
+    await broker.startup()
+    # TODO(flying-sheep): loop and enqueue tasks  # noqa: TD003
