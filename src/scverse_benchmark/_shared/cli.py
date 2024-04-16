@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     import taskiq
 
 stderr = Console(stderr=True)
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
 
 
 class Args(SimpleNamespace):
