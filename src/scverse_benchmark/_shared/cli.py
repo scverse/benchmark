@@ -13,7 +13,11 @@ if TYPE_CHECKING:
     import taskiq
 
 stderr = Console(stderr=True)
-app = typer.Typer(no_args_is_help=True, pretty_exceptions_enable=False)
+app = typer.Typer(
+    no_args_is_help=True,
+    # See https://github.com/Textualize/rich/issues/1859
+    pretty_exceptions_enable=False,
+)
 
 
 class Args(SimpleNamespace):
