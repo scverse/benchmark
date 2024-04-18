@@ -8,7 +8,7 @@ authors = [
 ]
 urls.Source = "https://github.com/scverse/benchmark"
 readme = "README.md"
-dependencies = ["typer", "fastapi", "taskiq", "taskiq-fastapi"]
+dependencies = ["typer", "fastapi", "taskiq", "taskiq-fastapi", "githubkit"]
 dynamic = ["version"]
 
 [project.optional-dependencies]
@@ -74,6 +74,7 @@ known-first-party = ["scverse_benchmark"]
 required-imports = ["from __future__ import annotations"]
 [tool.ruff.lint.flake8-type-checking]
 strict = true
+exempt-modules = []
 
 [build-system]
 build-backend = "hatchling.build"

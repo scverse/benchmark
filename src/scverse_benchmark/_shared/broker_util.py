@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING, Never
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import rich.console
 
 
 if TYPE_CHECKING:
+    from typing import Never
+
     import taskiq
 
 
