@@ -13,7 +13,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["taskiq[reload]", "uvicorn"]
-test = ["pytest>=8.1", "pytest-env", "asgi-lifespan", "httpx"]
+test = ["pytest>=8.1", "asgi-lifespan", "httpx"]
 amqp = ["taskiq-aio-pika"]
 
 [project.scripts]
@@ -26,7 +26,7 @@ source = "vcs"
 features = ["dev", "test", "amqp"]
 [tool.hatch.envs.default.scripts]
 queue = "uvicorn --reload {args} scverse_benchmark.queue:app"
-# In production, use our CLI indead. This is just for reloading.
+# In production, use our CLI from [project.scripts] indead. This is just for reloading.
 runner = "taskiq worker --reload --workers=1 --max-async-tasks=1 --max-threadpool-threads=1 scverse_benchmark._shared.tasks:broker"
 cov = "pytest --cov=scverse_benchmark {args}"
 
@@ -39,7 +39,6 @@ source = ["./src", "**/site-packages"]
 exclude_also = ["if TYPE_CHECKING:"]
 
 [tool.pytest.ini_options]
-env = ["ENVIRONMENT=pytest"]
 addopts = ["--import-mode=importlib"]
 filterwarnings = []
 testpaths = ["./tests"]

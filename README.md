@@ -97,7 +97,7 @@ Further steps:
 For local development, write and use unit- and integration tests wherever possible.
 When trying to run from the command line:
 
-1. [Install RabbitMQ][]
+1. [Install RabbitMQ][] and run it.
 2. Execute `hatch run runner` in one shell.
 3. Execute `hatch run queue` in another.
 4. Send webhook payloads to `http://localhost:8000`.
