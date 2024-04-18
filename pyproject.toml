@@ -4,33 +4,30 @@ description = "Scverse benchmark queue and runner"
 requires-python = ">=3.12"
 license = "GPL-3.0-or-later"
 authors = [
-    { name = "Philipp Angerer", email = "philipp.angerer@helmholtz-munich.de" },
+  { name = "Philipp Angerer", email = "philipp.angerer@helmholtz-munich.de" },
 ]
 urls.Source = "https://github.com/scverse/benchmark"
 readme = "README.md"
-dependencies = [
-    "typer",
-    "taskiq",
-]
+dependencies = ["typer", "fastapi", "taskiq", "taskiq-fastapi"]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = [
-    "taskiq[reload]",
-]
-test = [
-    "pytest>=8.1",
-]
+dev = ["taskiq[reload]"]
+test = ["pytest>=8.1", "pytest-env", "asgi-lifespan", "httpx"]
 amqp = ["taskiq-aio-pika"]
 
 [project.scripts]
-scverse-benchmark = "scverse_benchmark._shared.cli:app"
+runner = "scverse_benchmark.runner:cli"
 
 [tool.hatch.version]
 source = "vcs"
 
 [tool.hatch.envs.default]
 features = ["dev", "test", "amqp"]
+[tool.hatch.envs.default.scripts]
+queue = "uvicorn --reload {args} scverse_benchmark.queue:app"
+# runner = "runner {args}"
+cov = "pytest --cov=scverse_benchmark {args}"
 
 [tool.coverage.run]
 source_pkgs = ["scverse_benchmark"]
@@ -38,16 +35,12 @@ omit = ["**/test_*.py"]
 [tool.coverage.paths]
 source = ["./src", "**/site-packages"]
 [tool.coverage.report]
-exclude_also = [
-    "if TYPE_CHECKING:",
-]
+exclude_also = ["if TYPE_CHECKING:"]
 
 [tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
-filterwarnings = [
-]
+env = ["ENVIRONMENT=pytest"]
+addopts = ["--import-mode=importlib"]
+filterwarnings = []
 testpaths = ["./tests"]
 xfail_strict = true
 
@@ -63,16 +56,20 @@ docstring-code-format = true
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D203",   # prefer 0 blank lines before class docstring
-    "D213",   # prefer multiline docstring summary on first line
-    "ANN101", # don’t do type annotations for self in method
-    "C408",   # dict constructor usage is fine
-    "COM812", # Leave trailing comma to formatter
-    "FIX002", # “TODO” comments are fine
-    "ISC001", # Leave single line string concat to formatter
-    "TID252", # relative imports are fine
+  "D203",   # prefer 0 blank lines before class docstring
+  "D213",   # prefer multiline docstring summary on first line
+  "ANN101", # don’t do type annotations for self in method
+  "C408",   # dict constructor usage is fine
+  "COM812", # Leave trailing comma to formatter
+  "FIX002", # “TODO” comments are fine
+  "ISC001", # Leave single line string concat to formatter
+  "TID252", # relative imports are fine
 ]
+allowed-confusables = ["’", "×"]
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*" = ["S101", "INP001"]
 [tool.ruff.lint.isort]
+lines-after-imports = 2
 known-first-party = ["scverse_benchmark"]
 required-imports = ["from __future__ import annotations"]
 [tool.ruff.lint.flake8-type-checking]

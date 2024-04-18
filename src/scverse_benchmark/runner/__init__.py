@@ -2,23 +2,38 @@
 
 from __future__ import annotations
 
+import sys
 import tracemalloc
-from typing import TYPE_CHECKING
+from typing import Never
 
+import anyio.abc
+import taskiq
 from taskiq.receiver import Receiver
 
-# alternative: from taskiq.api import run_receiver_task
-from .._shared.tasks import Tasks
-
-if TYPE_CHECKING:
-    import taskiq
+from .._shared import tasks
 
 
-async def start(*, broker: taskiq.AsyncBroker) -> None:
-    """Fetch events from a redis queue and run benchmarks."""
+async def start(*, task_status: anyio.abc.TaskStatus | None = None) -> Never:
+    """Fetch events from a redis queue and run benchmarks.
+
+    We’re not using the worker CLI here because we deliberately
+    only want one in-process worker.
+    """
     tracemalloc.start()  # debug async tasks
 
-    Tasks(broker)  # import and register tasks
-    broker.is_worker_process = True
-    recv = Receiver(broker, run_starup=True, max_async_tasks=1)
+    tasks.broker.is_worker_process = True
+    if task_status is not None:
+        tasks.broker.add_event_handler(
+            taskiq.TaskiqEvents.WORKER_STARTUP, task_status.started
+        )
+
+    recv = Receiver(tasks.broker, run_starup=True, max_async_tasks=1)
     await recv.listen()
+
+
+def cli() -> Never:  # type: ignore[return]
+    """Run runner until interrupted (Ctrl+C)."""
+    try:
+        anyio.run(start)
+    except KeyboardInterrupt:
+        sys.exit()

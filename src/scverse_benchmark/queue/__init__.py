@@ -2,20 +2,36 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from .._shared.tasks import Tasks
+import taskiq_fastapi
+from fastapi import FastAPI
+
+from .._shared import tasks
+
 
 if TYPE_CHECKING:
-    import taskiq
+    from collections.abc import AsyncGenerator
+
+taskiq_fastapi.init(tasks.broker, f"{__name__}:app")
 
 
-async def start(*, broker: taskiq.AsyncBroker) -> None:
-    """Listen for webhooks and push events to a redis queue."""
-    tasks = Tasks(broker)
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    """Lifespan manager."""
+    if not tasks.broker.is_worker_process:
+        await tasks.broker.startup()
+    yield
+    if not tasks.broker.is_worker_process:
+        await tasks.broker.shutdown()
 
-    await broker.startup()
-    # TODO(flying-sheep): loop and enqueue tasks  # noqa: TD003
-    await tasks.compare.kiq()
 
-    await broker.shutdown()
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/")
+async def root() -> str:
+    """Receive webhook and potentially enqueue task."""
+    task = await tasks.compare.kiq()
+    return f"Compare benchmarks... {task.task_id}"

@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Debug Tests",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "args": [],
+      "purpose": ["debug-test"],
+      "console": "internalConsole",
+      "justMyCode": false,
+      "presentation": {
+        "hidden": true,
+      },
+    },
+  ],
+}

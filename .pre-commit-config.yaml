@@ -12,6 +12,10 @@ repos:
     hooks:
     - id: biome-format
       additional_dependencies: ["@biomejs/biome@1.7.0"]
+  - repo: https://github.com/redeboer/taplo-pre-commit
+    rev: v0.9.1rc1
+    hooks:
+      - id: taplo
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
