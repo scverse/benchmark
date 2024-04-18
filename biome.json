@@ -1,0 +1,19 @@
+{
+  "formatter": {
+    "indentStyle": "space"
+  },
+  "overrides": [
+    {
+      "include": [".vscode/**"],
+      "json": {
+        "parser": {
+          "allowComments": true,
+          "allowTrailingCommas": true
+        },
+        "formatter": {
+          "trailingCommas": "all"
+        }
+      }
+    }
+  ]
+}
