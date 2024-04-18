@@ -12,7 +12,7 @@ dependencies = ["typer", "fastapi", "taskiq", "taskiq-fastapi"]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["taskiq[reload]"]
+dev = ["taskiq[reload]", "uvicorn"]
 test = ["pytest>=8.1", "pytest-env", "asgi-lifespan", "httpx"]
 amqp = ["taskiq-aio-pika"]
 
@@ -26,7 +26,8 @@ source = "vcs"
 features = ["dev", "test", "amqp"]
 [tool.hatch.envs.default.scripts]
 queue = "uvicorn --reload {args} scverse_benchmark.queue:app"
-# runner = "runner {args}"
+# In production, use our CLI indead. This is just for reloading.
+runner = "taskiq worker --reload --workers=1 --max-async-tasks=1 --max-threadpool-threads=1 scverse_benchmark._shared.tasks:broker"
 cov = "pytest --cov=scverse_benchmark {args}"
 
 [tool.coverage.run]
