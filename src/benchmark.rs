@@ -12,8 +12,20 @@ use tokio::process::Command;
 use crate::repo_cache::sync_repo;
 use crate::traits::RunConfig;
 
+#[derive(Default, Debug, Clone)]
+pub(crate) struct EnvSpecs(pub Vec<String>);
+
+impl EnvSpecs {
+    pub fn args(&self) -> Vec<&str> {
+        self.0
+            .iter()
+            .flat_map(|env_spec| ["-E", &env_spec])
+            .collect()
+    }
+}
+
 /// Sync repo to match remote’s branch, and run ASV afterwards.
-pub(crate) async fn sync_repo_and_run<R>(req: &R) -> Result<PathBuf>
+pub(crate) async fn sync_repo_and_run<R>(req: &R) -> Result<(PathBuf, EnvSpecs)>
 where
     R: RunConfig + Send + Sync + Clone,
 {
@@ -24,8 +36,7 @@ where
         tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??
     };
     tracing::info!("Synced config repo to {:?} @ {config_ref}", repo.path());
-    let wd = run_benchmark(repo, req.run_on()).await?;
-    Ok(wd)
+    run_benchmark(repo, req.run_on()).await
 }
 
 /// Create an `asv` command in the working directory
@@ -41,6 +52,8 @@ pub(crate) struct AsvCompare {
     left: String,
     right: String,
     only_changed: bool,
+    /// The envs to run on. If empty, run on all
+    envs: EnvSpecs,
 }
 
 impl AsvCompare {
@@ -50,10 +63,15 @@ impl AsvCompare {
             left: left.into(),
             right: right.into(),
             only_changed: true,
+            envs: EnvSpecs::default(),
         }
     }
     pub fn only_changed(&mut self, only_changed: bool) -> &mut Self {
         self.only_changed = only_changed;
+        self
+    }
+    pub fn in_envs(&mut self, envs: EnvSpecs) -> &mut Self {
+        self.envs = envs;
         self
     }
     fn command(&self) -> Command {
@@ -62,7 +80,9 @@ impl AsvCompare {
         if self.only_changed {
             command.arg("--only-changed");
         }
-        command.args([&self.left, &self.right]);
+        command
+            .args(self.envs.args())
+            .args([&self.left, &self.right]);
         command
     }
     pub async fn run(&self) -> Result<()> {
@@ -90,14 +110,15 @@ impl AsvCompare {
     }
 }
 
-pub async fn resolve_env(wd: &Path) -> Result<Vec<String>> {
+pub async fn resolve_env(wd: &Path) -> Result<EnvSpecs> {
     tracing::info!("Resolving Environments: {:?}", wd);
-    resolve_env_from_stdout(
+    let env_specs = resolve_env_from_stdout(
         Command::new("python")
             .current_dir(wd)
             .args(["-c", include_str!("resolve_env.py")]),
     )
-    .await
+    .await?;
+    Ok(EnvSpecs(env_specs))
 }
 
 async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
@@ -108,7 +129,7 @@ async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
     Ok(parsed)
 }
 
-async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf> {
+async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<(PathBuf, EnvSpecs)> {
     let wd = {
         let on = on.to_owned();
         tokio::task::spawn_blocking(move || fetch_configured_refs(&repo, &on)).await??
@@ -127,11 +148,9 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf>
 
     tracing::info!("Running asv in {}", wd.display());
     let mut command = asv_command(&wd);
-    command.arg("run"); // This skips even if benchmarks changed: .arg("--skip-existing-commits");
     let env_specs = resolve_env(&wd).await?;
-    for env_spec in env_specs {
-        command.args(["-E", &env_spec]);
-    }
+    command.arg("run").args(env_specs.args());
+    // Adding .arg("--skip-existing-commits") would skip even if benchmarks changed
     let mut child = if on.is_empty() {
         command.spawn().context("failed to spawn `asv run`")?
     } else {
@@ -150,7 +169,7 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<PathBuf>
         bail!("asv run exited with {result}");
     }
 
-    Ok(wd)
+    Ok((wd, env_specs))
 }
 
 #[derive(Deserialize)]

@@ -4,7 +4,7 @@ use anyhow::Result;
 use futures::{channel::mpsc::Receiver, StreamExt};
 use tracing::Instrument;
 
-use crate::benchmark::{sync_repo_and_run, AsvCompare};
+use crate::benchmark::{sync_repo_and_run, AsvCompare, EnvSpecs};
 use crate::constants::ORG;
 use crate::event::{Compare, Event};
 
@@ -40,12 +40,13 @@ async fn handle_event(event: Event) -> Result<()> {
 }
 
 async fn full_compare(cmp: &Compare) -> Result<String, anyhow::Error> {
-    let wd = sync_repo_and_run(cmp).await?;
-    compare(&wd, cmp).await
+    let (wd, env_specs) = sync_repo_and_run(cmp).await?;
+    compare(&wd, env_specs, cmp).await
 }
 
-async fn compare(wd: &Path, cmp: &Compare) -> Result<String> {
+async fn compare(wd: &Path, env_specs: EnvSpecs, cmp: &Compare) -> Result<String> {
     let mut compare = AsvCompare::new(wd, &cmp.commits[0], &cmp.commits[1]);
+    compare.in_envs(env_specs);
     // Try updating comment with short comparison
     if let Err(e) = comment::update(cmp, &compare.output().await?)
         .instrument(tracing::info_span!("comment_update"))
