@@ -149,7 +149,9 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<(PathBuf
     tracing::info!("Running asv in {}", wd.display());
     let mut command = asv_command(&wd);
     let env_specs = resolve_env(&wd).await?;
-    command.arg("run").args(env_specs.args());
+    command
+        .args(["run", "--launch-method=spawn"])
+        .args(env_specs.args());
     // Adding .arg("--skip-existing-commits") would skip even if benchmarks changed
     let mut child = if on.is_empty() {
         command.spawn().context("failed to spawn `asv run`")?
