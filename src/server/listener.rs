@@ -12,14 +12,14 @@ use axum::{
     Router,
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken as GitHubSecret};
-use octocrab::{
-    models::webhook_events::payload::PullRequestWebhookEventAction as ActionType,
-    params::checks::CheckRunStatus, Octocrab,
+use octocrab::models::webhook_events::payload::{
+    PullRequestWebhookEventAction as ActionType, PullRequestWebhookEventPayload as PullRequestEvent,
 };
+use octocrab::{models::Repository, params::checks::CheckRunStatus, Octocrab};
 use tower_http::trace::TraceLayer;
 
 use crate::constants::{BENCHMARK_LABEL, ORG};
-use crate::event::{Compare, Event, PullRequestEvent};
+use crate::event::{Compare, Event};
 
 use super::octocrab_utils::ref_exists;
 
@@ -41,8 +41,7 @@ async fn handle(
     GithubEvent(PullRequestEvent {
         pull_request: pr,
         action,
-        repository,
-        payload,
+        label,
         ..
     }): GithubEvent<PullRequestEvent>,
 ) -> impl IntoResponse {
@@ -53,8 +52,7 @@ async fn handle(
         return Ok("skipped: event action".to_owned());
     }
     if matches!(action, ActionType::Labeled)
-        && payload
-            .label
+        && label
             .ok_or_else(|| (StatusCode::BAD_REQUEST, "missing label".to_owned()))?
             .name
             != BENCHMARK_LABEL
@@ -69,9 +67,12 @@ async fn handle(
     {
         return Ok("skipped: missing benchmark label".to_owned());
     }
+    let Some(Repository { name: repo, .. }) = pr.base.repo else {
+        return Err((StatusCode::BAD_REQUEST, "missing repo".to_owned()));
+    };
 
     let github_client = octocrab::instance();
-    let checks = github_client.checks(ORG, &repository.name);
+    let checks = github_client.checks(ORG, &repo);
     // `.ok()` allows creating the check run creation to fail. We’ll not try to update it in that case.
     let check_id = checks
         .create_check_run("benchmark", &pr.head.sha)
@@ -84,7 +85,7 @@ async fn handle(
         .ok();
     handle_enqueue(
         Compare {
-            repo: repository.name,
+            repo,
             commits: [pr.base.sha, pr.head.sha],
             pr: pr.number,
             check_id,

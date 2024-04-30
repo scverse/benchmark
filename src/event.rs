@@ -1,8 +1,4 @@
-mod github;
-
 use octocrab::models::CheckRunId;
-
-pub(crate) use github::PullRequestEvent;
 
 use crate::traits::RunConfig;
 

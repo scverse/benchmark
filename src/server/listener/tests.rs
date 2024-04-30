@@ -8,7 +8,10 @@ use futures::{
 };
 use hmac_sha256::HMAC;
 use http_body_util::BodyExt;
-use octocrab::{models::commits::Commit, Octocrab};
+use octocrab::{
+    models::{commits::Commit, webhook_events::payload::PullRequestWebhookEventPayload},
+    Octocrab,
+};
 use std::sync::Arc;
 use tower::util::ServiceExt;
 use wiremock::{
@@ -17,7 +20,7 @@ use wiremock::{
 };
 
 use crate::constants::ORG;
-use crate::event::{Compare, Event, PullRequestEvent};
+use crate::event::{Compare, Event};
 use crate::fixtures::{COMMIT, PR};
 
 use super::{handle, AppState};
@@ -147,7 +150,7 @@ async fn should_skip_on_no_label() {
     let template = ResponseTemplate::new(200).set_body_json(commit_after);
     let (app, mut recv) = app(Some(template)).await;
     // remove the benchmark label
-    let mut evt: PullRequestEvent = serde_json::from_str(PR).unwrap();
+    let mut evt: PullRequestWebhookEventPayload = serde_json::from_str(PR).unwrap();
     evt.pull_request.labels.as_mut().unwrap().clear();
     let request = make_webhook_request(serde_json::to_string(&evt).unwrap(), true);
     let res = app.oneshot(request).await.unwrap();
@@ -160,7 +163,7 @@ async fn should_skip_on_no_label() {
 #[tokio::test]
 async fn should_enqueue_valid_pr_event() {
     // pull request with benchmark label
-    let evt: PullRequestEvent = serde_json::from_str(PR).unwrap();
+    let evt: PullRequestWebhookEventPayload = serde_json::from_str(PR).unwrap();
     // expected event payload
     let sha_base: &str = evt.pull_request.base.sha.as_ref();
     let sha_head: &str = evt.pull_request.head.sha.as_ref();
@@ -174,7 +177,7 @@ async fn should_enqueue_valid_pr_event() {
     let body = assert_status_eq(res, StatusCode::OK).await;
     assert_eq!(body, "enqueued");
     let evt = Compare {
-        repo: evt.repository.name,
+        repo: evt.pull_request.base.repo.unwrap().name,
         commits: [sha_base.to_owned(), sha_head.to_owned()],
         pr: evt.pull_request.number,
         check_id: None,
