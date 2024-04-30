@@ -42,6 +42,7 @@ async fn handle(
         pull_request: pr,
         action,
         repository,
+        payload,
         ..
     }): GithubEvent<PullRequestEvent>,
 ) -> impl IntoResponse {
@@ -50,6 +51,15 @@ async fn handle(
         ActionType::Opened | ActionType::Reopened | ActionType::Synchronize | ActionType::Labeled
     ) {
         return Ok("skipped: event action".to_owned());
+    }
+    if matches!(action, ActionType::Labeled)
+        && payload
+            .label
+            .ok_or_else(|| (StatusCode::BAD_REQUEST, "missing label".to_owned()))?
+            .name
+            != BENCHMARK_LABEL
+    {
+        return Ok("skipped: added label is not benchmark".to_owned());
     }
     if pr
         .labels

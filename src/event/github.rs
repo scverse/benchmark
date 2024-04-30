@@ -1,4 +1,6 @@
-use octocrab::models::webhook_events::payload::PullRequestWebhookEventAction;
+use octocrab::models::webhook_events::payload::{
+    PullRequestWebhookEventAction, PullRequestWebhookEventPayload,
+};
 use octocrab::models::{orgs::Organization, pulls::PullRequest, Author, Repository};
 use serde::{Deserialize, Serialize};
 
@@ -19,4 +21,7 @@ pub(crate) struct PullRequestEvent {
     pub pull_request: PullRequest,
     /// The sender of the event
     pub sender: Author,
+    /// The payload of the event
+    #[serde(flatten)]
+    pub payload: PullRequestWebhookEventPayload,
 }
