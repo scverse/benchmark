@@ -19,7 +19,7 @@ impl EnvSpecs {
     pub fn args(&self) -> Vec<&str> {
         self.0
             .iter()
-            .flat_map(|env_spec| ["-E", &env_spec])
+            .flat_map(|env_spec| ["-E", env_spec])
             .collect()
     }
 }
