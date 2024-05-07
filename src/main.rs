@@ -1,6 +1,7 @@
 #![warn(clippy::pedantic)]
 
-use anyhow::Result;
+use anyhow::{bail, Result};
+use benchmark::RunResult;
 use clap::Parser;
 
 mod benchmark;
@@ -30,13 +31,20 @@ async fn main() -> Result<()> {
             server::serve(args).await?;
         }
         cli::Commands::Run(args) => {
-            let (wd, env_specs) = benchmark::sync_repo_and_run(&args).await?;
+            let RunResult {
+                success,
+                wd,
+                env_specs,
+            } = benchmark::sync_repo_and_run(&args).await?;
             // if exactly two are specified, show a comparison
             if let [before, after] = args.run_on.as_slice() {
                 benchmark::AsvCompare::new(&wd, before, after)
                     .in_envs(env_specs)
                     .run()
                     .await?;
+            }
+            if !success {
+                bail!("Benchmark run failed");
             }
         }
     }

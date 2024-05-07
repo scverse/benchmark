@@ -6,8 +6,8 @@ use crate::constants::{is_pr_comparison, ORG, PR_COMPARISON_MARKER};
 use crate::event::Compare;
 use crate::octocrab_utils::PageExt;
 
-pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
-    let markdown = make(cmp, markdown)?;
+pub(super) async fn update(cmp: &Compare, markdown: &str, success: bool) -> Result<()> {
+    let markdown = make(cmp, markdown, success)?;
 
     tracing::info!("Updating comment for {ORG}/{}’s PR {}", cmp.repo, cmp.pr);
     let github_api = octocrab::instance();
@@ -35,14 +35,16 @@ struct Comment<'a> {
     content: &'a str,
     now: DateTime<Utc>,
     cmp: &'a Compare,
+    success: bool,
 }
 
-fn make(cmp: &Compare, content: &str) -> Result<String> {
+fn make(cmp: &Compare, content: &str, success: bool) -> Result<String> {
     Ok(Comment {
         pr_comparison_marker: PR_COMPARISON_MARKER,
         content,
         cmp,
         now: Utc::now(),
+        success,
     }
     .render()?)
 }

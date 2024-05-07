@@ -1,10 +1,8 @@
-use std::path::Path;
-
 use anyhow::Result;
 use futures::{channel::mpsc::Receiver, StreamExt};
 use tracing::Instrument;
 
-use crate::benchmark::{sync_repo_and_run, AsvCompare, EnvSpecs};
+use crate::benchmark::{sync_repo_and_run, AsvCompare, RunResult};
 use crate::constants::ORG;
 use crate::event::{Compare, Event};
 
@@ -39,16 +37,18 @@ async fn handle_event(event: Event) -> Result<()> {
     Ok(())
 }
 
-async fn full_compare(cmp: &Compare) -> Result<String, anyhow::Error> {
-    let (wd, env_specs) = sync_repo_and_run(cmp).await?;
-    compare(&wd, env_specs, cmp).await
+async fn full_compare(cmp: &Compare) -> Result<(String, bool), anyhow::Error> {
+    let rr = sync_repo_and_run(cmp).await?;
+    let success = rr.success;
+    let output = compare(rr, cmp).await?;
+    Ok((output, success))
 }
 
-async fn compare(wd: &Path, env_specs: EnvSpecs, cmp: &Compare) -> Result<String> {
-    let mut compare = AsvCompare::new(wd, &cmp.commits[0], &cmp.commits[1]);
-    compare.in_envs(env_specs);
+async fn compare(rr: RunResult, cmp: &Compare) -> Result<String> {
+    let mut compare = AsvCompare::new(&rr.wd, &cmp.commits[0], &cmp.commits[1]);
+    compare.in_envs(rr.env_specs);
     // Try updating comment with short comparison
-    if let Err(e) = comment::update(cmp, &compare.output().await?)
+    if let Err(e) = comment::update(cmp, &compare.output().await?, rr.success)
         .instrument(tracing::info_span!("comment_update"))
         .await
     {
