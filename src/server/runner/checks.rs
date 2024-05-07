@@ -16,7 +16,7 @@ pub(super) async fn with_check<Fut>(
     func: impl Fn() -> Fut,
 ) -> Result<String>
 where
-    Fut: Future<Output = Result<String>>,
+    Fut: Future<Output = Result<(String, bool)>>,
 {
     checks
         .update_check_run(check_id)
@@ -31,13 +31,18 @@ where
         images: vec![],
     };
     let (conclusion, res) = match func().await {
-        Ok(text) => {
-            output.summary = "Benchmark run successful".to_owned();
+        Ok((text, success)) => {
+            "Benchmark run successful".clone_into(&mut output.summary);
             output.text = Some(clamp_lines(&text, u16::MAX.into()).to_owned());
-            (CheckRunConclusion::Success, Ok(text))
+            let conclusion = if success {
+                CheckRunConclusion::Success
+            } else {
+                CheckRunConclusion::Failure
+            };
+            (conclusion, Ok(text))
         }
         Err(e) => {
-            output.summary = "Benchmark run failed".to_owned();
+            "Benchmark run failed".clone_into(&mut output.summary);
             output.text = Some(format!("## Error message\n{e}"));
             (CheckRunConclusion::Failure, Err(e))
         }

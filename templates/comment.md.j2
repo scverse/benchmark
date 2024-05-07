@@ -8,6 +8,11 @@ No changes in benchmarks.
 {{ content }}
 {% endif %}
 
+{% if !success %}
+> [!WARNING]
+> Some benchmarks failed
+{% endif %}
+
 Comparison: <https://github.com/scverse/{{ cmp.repo }}/compare/{{ cmp.commits[0] }}..{{ cmp.commits[1] }}>
 Last changed: <time datetime="{{ now.to_rfc3339() }}">{{ now.to_rfc2822() }}</time>
 {% match cmp.check_id %}

@@ -6,8 +6,8 @@ use crate::constants::{is_pr_comparison, ORG, PR_COMPARISON_MARKER};
 use crate::event::Compare;
 use crate::octocrab_utils::PageExt;
 
-pub(super) async fn update(cmp: &Compare, markdown: &str) -> Result<()> {
-    let markdown = make(cmp, markdown)?;
+pub(super) async fn update(cmp: &Compare, markdown: &str, success: bool) -> Result<()> {
+    let markdown = make(cmp, markdown, success)?;
 
     tracing::info!("Updating comment for {ORG}/{}’s PR {}", cmp.repo, cmp.pr);
     let github_api = octocrab::instance();
@@ -35,14 +35,16 @@ struct Comment<'a> {
     content: &'a str,
     now: DateTime<Utc>,
     cmp: &'a Compare,
+    success: bool,
 }
 
-fn make(cmp: &Compare, content: &str) -> Result<String> {
+fn make(cmp: &Compare, content: &str, success: bool) -> Result<String> {
     Ok(Comment {
         pr_comparison_marker: PR_COMPARISON_MARKER,
         content,
         cmp,
         now: Utc::now(),
+        success,
     }
     .render()?)
 }
@@ -50,37 +52,34 @@ fn make(cmp: &Compare, content: &str) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use octocrab::models::CheckRunId;
+    use rstest::rstest;
 
-    #[test]
-    fn test_make_empty() {
-        let cmp = Compare {
-            repo: "repo1".to_owned(),
-            pr: 1,
-            commits: ["a".to_owned(), "b".to_owned()],
-            check_id: None,
-        };
-        let markdown = make(&cmp, "").unwrap();
-        assert!(markdown.contains(PR_COMPARISON_MARKER));
-        assert!(!markdown.contains("## Benchmark changes"));
-        assert!(markdown.contains("No changes in benchmarks."));
-        assert!(!markdown.contains("More details:"));
-    }
-
-    #[test]
-    fn test_make_filled() {
+    #[rstest]
+    fn test_make(
+        #[values(true, false)] success: bool,
+        #[values("", "Some | Table")] content: &str,
+        #[values(None, Some(3u64.into()))] check_id: Option<CheckRunId>,
+    ) {
         let cmp = Compare {
             repo: "repo2".to_owned(),
             pr: 2,
             commits: ["c".to_owned(), "d".to_owned()],
-            check_id: Some(3.into()),
+            check_id,
         };
-        let content = "Some | table";
-        let markdown = make(&cmp, content).unwrap();
+        let markdown = make(&cmp, content, success).unwrap();
         assert!(markdown.contains(PR_COMPARISON_MARKER));
-        assert!(markdown.contains("## Benchmark changes"));
+        assert_eq!(
+            !content.is_empty(),
+            markdown.contains("## Benchmark changes")
+        );
         assert!(markdown.contains(content));
-        assert!(markdown.contains(
-            "More details: <https://github.com/scverse/repo2/pull/2/checks?check_run_id=3>"
-        ));
+        assert_eq!(!success, markdown.contains("> [!WARNING]"));
+        assert_eq!(check_id.is_some(), markdown.contains("More details:"));
+        if check_id.is_some() {
+            assert!(markdown.contains(
+                "More details: <https://github.com/scverse/repo2/pull/2/checks?check_run_id=3>"
+            ));
+        }
     }
 }

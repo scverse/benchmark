@@ -19,13 +19,20 @@ impl EnvSpecs {
     pub fn args(&self) -> Vec<&str> {
         self.0
             .iter()
-            .flat_map(|env_spec| ["-E", &env_spec])
+            .flat_map(|env_spec| ["-E", env_spec])
             .collect()
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct RunResult {
+    pub success: bool,
+    pub wd: PathBuf,
+    pub env_specs: EnvSpecs,
+}
+
 /// Sync repo to match remote’s branch, and run ASV afterwards.
-pub(crate) async fn sync_repo_and_run<R>(req: &R) -> Result<(PathBuf, EnvSpecs)>
+pub(crate) async fn sync_repo_and_run<R>(req: &R) -> Result<RunResult>
 where
     R: RunConfig + Send + Sync + Clone,
 {
@@ -129,7 +136,7 @@ async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
     Ok(parsed)
 }
 
-async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<(PathBuf, EnvSpecs)> {
+async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<RunResult> {
     let wd = {
         let on = on.to_owned();
         tokio::task::spawn_blocking(move || fetch_configured_refs(&repo, &on)).await??
@@ -142,9 +149,11 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<(PathBuf
         .spawn()?
         .wait()
         .await?;
-    if result.code() != Some(0) {
-        bail!("asv run --bench=just-discover exited with {result}");
-    }
+    let success = match result.code() {
+        Some(0) => true,
+        Some(2) => false,
+        _ => bail!("asv run --bench=just-discover exited with {result}"),
+    };
 
     tracing::info!("Running asv in {}", wd.display());
     let mut command = asv_command(&wd);
@@ -171,7 +180,11 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<(PathBuf
         bail!("asv run exited with {result}");
     }
 
-    Ok((wd, env_specs))
+    Ok(RunResult {
+        success,
+        wd,
+        env_specs,
+    })
 }
 
 #[derive(Deserialize)]
