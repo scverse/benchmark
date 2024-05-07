@@ -149,11 +149,9 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<RunResul
         .spawn()?
         .wait()
         .await?;
-    let success = match result.code() {
-        Some(0) => true,
-        Some(2) => false,
-        _ => bail!("asv run --bench=just-discover exited with {result}"),
-    };
+    if result.code() != Some(0) {
+        bail!("asv run --bench=just-discover exited with {result}");
+    }
 
     tracing::info!("Running asv in {}", wd.display());
     let mut command = asv_command(&wd);
@@ -176,9 +174,11 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<RunResul
         child
     };
     let result = child.wait().await?;
-    if result.code() != Some(0) {
-        bail!("asv run exited with {result}");
-    }
+    let success = match result.code() {
+        Some(0) => true,
+        Some(2) => false,
+        _ => bail!("asv run --bench=just-discover exited with {result}"),
+    };
 
     Ok(RunResult {
         success,
