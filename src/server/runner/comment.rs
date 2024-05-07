@@ -75,9 +75,8 @@ mod tests {
         );
         assert!(markdown.contains(content));
         assert_eq!(!success, markdown.contains("> [!WARNING]"));
-        if check_id.is_none() {
-            assert!(!markdown.contains("More details:"));
-        } else {
+        assert_eq!(check_id.is_some(), markdown.contains("More details:"));
+        if check_id.is_some() {
             assert!(markdown.contains(
                 "More details: <https://github.com/scverse/repo2/pull/2/checks?check_run_id=3>"
             ));
