@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install build tools
       run: dnf install -y bash nodejs jq gcc openssl-devel
-    - run: 'cat $GITHUB_PATH'
+    - run: echo /bin >> $GITHUB_PATH
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy
