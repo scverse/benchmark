@@ -13,7 +13,7 @@ use octocrab::{
     Octocrab,
 };
 use std::sync::Arc;
-use tower::util::ServiceExt;
+use tower::ServiceExt;
 use wiremock::{
     matchers::{method, path},
     Mock, MockServer, ResponseTemplate,

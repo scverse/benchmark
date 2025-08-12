@@ -15,16 +15,18 @@ jobs:
       image: rockylinux/rockylinux:9
     steps:
     - uses: actions/checkout@v4
+    - name: Install build tools
+      run: dnf install -y bash nodejs jq gcc openssl-devel
+    - name: Make sure $PATH contains /bin  # seems like GH actions doesn’t do this right when a container is in play
+      run: echo /bin >> $GITHUB_PATH
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy
     - uses: Swatinem/rust-cache@v2
-    - name: Install build tools
-      run: dnf install -y jq gcc openssl-devel
     - name: Build
       run: cargo build --release
     - name: Check style
-      run: cargo clippy
+      run: cargo clippy -- -Dwarnings
     - name: Run tests
       run: cargo test
     - name: Get artifact

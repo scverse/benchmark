@@ -1,14 +1,14 @@
+use std::sync::LazyLock;
+
 use anyhow::{Context, Result};
 use futures::{stream, StreamExt, TryStreamExt};
-use lazy_static::lazy_static;
-use octocrab::{params::repos::Reference, GitHubError};
+use octocrab::params::repos::Reference;
+use regex::Regex;
 
 use crate::constants::ORG;
 use crate::nightly_backports::floor_char_boundary;
 
-lazy_static! {
-    static ref SHA1_RE: regex::Regex = regex::Regex::new(r"^[a-f0-9]{40}$").unwrap();
-}
+static SHA1_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-f0-9]{40}$").unwrap());
 
 pub(super) async fn ref_exists(
     github_client: &octocrab::Octocrab,
@@ -48,14 +48,11 @@ impl<T> OctocrabOptional<T> for octocrab::Result<T> {
     fn found(self) -> octocrab::Result<Option<T>> {
         match self {
             Ok(value) => Ok(Some(value)),
-            Err(octocrab::Error::GitHub {
-                source:
-                    GitHubError {
-                        status_code: http::StatusCode::NOT_FOUND,
-                        ..
-                    },
-                ..
-            }) => Ok(None),
+            Err(octocrab::Error::GitHub { source, .. })
+                if source.status_code == http::StatusCode::NOT_FOUND =>
+            {
+                Ok(None)
+            }
             Err(e) => Err(e),
         }
     }

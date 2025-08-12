@@ -10,6 +10,7 @@ use octocrab::{
 use crate::server::octocrab_utils::clamp_lines;
 
 /// Update the check run before and after the function ran.
+#[tracing::instrument(skip(checks, func))]
 pub(super) async fn with_check<Fut>(
     checks: ChecksHandler<'_>,
     check_id: CheckRunId,

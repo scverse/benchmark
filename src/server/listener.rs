@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use futures::{channel::mpsc::Sender, SinkExt};
 use secrecy::{ExposeSecret, SecretString};
 use std::sync::Arc;
-use tracing::Instrument;
 
 use axum::{
     extract::{FromRef, State},
@@ -92,10 +91,10 @@ async fn handle(
         },
         state,
     )
-    .instrument(tracing::info_span!("handle_enqueue"))
     .await
 }
 
+#[tracing::instrument(skip_all, fields(repo = %event.repo, pr = %event.pr))]
 async fn handle_enqueue(
     event: Compare,
     mut state: AppState,

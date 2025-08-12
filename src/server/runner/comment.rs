@@ -6,6 +6,7 @@ use crate::constants::{is_pr_comparison, ORG, PR_COMPARISON_MARKER};
 use crate::event::Compare;
 use crate::octocrab_utils::PageExt;
 
+#[tracing::instrument(skip_all)]
 pub(super) async fn update(cmp: &Compare, markdown: &str, success: bool) -> Result<()> {
     let markdown = make(cmp, markdown, success)?;
 

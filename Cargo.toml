@@ -5,26 +5,25 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.80"
-askama = "0.12.1"
-axum = { version = "0.7.4", features = ["http2", "tokio", "tracing", "macros"] }
-axum-github-webhook-extract = "0.2.0"
+askama = "0.14.0"
+axum = { version = "0.8.0", features = ["http2", "tokio", "tracing", "macros"] }
+axum-github-webhook-extract = "0.3.0"
 chrono = "0.4.34"
 clap = { version = "4.5.1", features = ["derive", "env"] }
-directories = "5.0.1"
+directories = "6.0.0"
 futures = "0.3.30"
-git2 = "0.18.2"
+git2 = "0.20.2"
 http = "1.0.0"
 jsonwebtoken = "9.2.0"
-lazy_static = "1.4.0"
-octocrab = { version = "0.38.0", features = ["stream", "tracing"] }
+octocrab = { version = "0.44.1", features = ["stream", "tracing"] }
 regex = "1.10.3"
-secrecy = "0.8.0"
+secrecy = "0.10.3"
 serde = { version = "1.0.196", features = ["derive"] }
-serde_json5 = "0.1.0"
+serde_json5 = "0.2.1"
 tap = "1.0.1"
 # macros, rt-multi-thread for #[tokio::main]
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "process"] }
-tower-http = { version = "0.5.1", features = ["trace"] }
+tower-http = { version = "0.6.6", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 serde_json = "1.0"
@@ -33,14 +32,14 @@ serde_json = "1.0"
 libsystemd = "0.7.0"
 
 [dev-dependencies]
-rstest = "0.19.0"
+rstest = "0.26.1"
 assert-json-diff = "2.0.2"
 wiremock = "0.6.0"
 temp-env = "0.3.6"
-test-temp-dir = "0.2.0"
+test-temp-dir = "0.3.5"
 # transitive deps we use directly
 http = "1.0.0"
 hmac-sha256 = "1.1.7"
 hex = "0.4.3"
-tower = "0.4.13"
+tower = { version = "0.5.2", features = ["util"] }
 http-body-util = "0.1.0"
