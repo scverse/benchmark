@@ -1,14 +1,14 @@
+use std::sync::LazyLock;
+
 use anyhow::{Context, Result};
 use futures::{stream, StreamExt, TryStreamExt};
-use lazy_static::lazy_static;
 use octocrab::{params::repos::Reference, GitHubError};
+use regex::Regex;
 
 use crate::constants::ORG;
 use crate::nightly_backports::floor_char_boundary;
 
-lazy_static! {
-    static ref SHA1_RE: regex::Regex = regex::Regex::new(r"^[a-f0-9]{40}$").unwrap();
-}
+static SHA1_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-f0-9]{40}$").unwrap());
 
 pub(super) async fn ref_exists(
     github_client: &octocrab::Octocrab,

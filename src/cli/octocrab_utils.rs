@@ -23,7 +23,7 @@ pub(super) async fn auth_to_octocrab(auth: Auth) -> Result<octocrab::Octocrab> {
                 "Found installation: {}",
                 html_url.unwrap_or_else(|| id.to_string())
             );
-            Ok(octocrab::Octocrab::installation(&base, id))
+            Ok(octocrab::Octocrab::installation(&base, id)?)
         }
         cli::Auth::GitHubToken(github_token) => Ok(octocrab::Octocrab::builder()
             .personal_token(github_token)
