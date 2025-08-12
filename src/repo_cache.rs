@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use directories::ProjectDirs;
-use std::path::Path;
+use std::{path::Path, sync::LazyLock};
 
 use crate::constants::ORG;
 
-lazy_static::lazy_static! {
-    static ref DIRS: ProjectDirs = ProjectDirs::from("org", "scverse", "scverse-benchmark").expect("No Home dir");
-    static ref CACHE_DIR: &'static Path = DIRS.cache_dir();
-}
+static DIRS: LazyLock<ProjectDirs> = LazyLock::new(|| {
+    ProjectDirs::from("org", "scverse", "scverse-benchmark").expect("No Home dir")
+});
+static CACHE_DIR: LazyLock<&'static Path> = LazyLock::new(|| DIRS.cache_dir());
 
 /// Sync repo to match remote’s ref. If ref is None, sync to default branch.
 pub(crate) fn sync_repo(repo: &str, to_ref: Option<&str>) -> Result<(git2::Repository, String)> {

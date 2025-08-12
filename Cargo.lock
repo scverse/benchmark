@@ -309,7 +309,6 @@ dependencies = [
  "http",
  "http-body-util",
  "jsonwebtoken",
- "lazy_static",
  "libsystemd",
  "octocrab",
  "regex",

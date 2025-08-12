@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use anyhow::{Context, Result};
 use futures::{stream, StreamExt, TryStreamExt};
-use octocrab::{params::repos::Reference, GitHubError};
+use octocrab::params::repos::Reference;
 use regex::Regex;
 
 use crate::constants::ORG;
