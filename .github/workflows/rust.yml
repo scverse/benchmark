@@ -17,7 +17,8 @@ jobs:
     - uses: actions/checkout@v4
     - name: Install build tools
       run: dnf install -y bash nodejs jq gcc openssl-devel
-    - run: echo /bin >> $GITHUB_PATH
+    - name: Make sure $PATH contains /bin  # seems like GH actions doesn’t do this right when a container is in play
+      run: echo /bin >> $GITHUB_PATH
     - uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy
