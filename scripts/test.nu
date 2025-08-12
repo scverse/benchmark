@@ -7,7 +7,7 @@
 # After installing `jaq` and `libgcrypt` in another nushell (activated via the `nu` command after installation), run the following:
 #
 # ```nushell
-# source test.nu
+# source scripts/test.nu
 # gh-hook http://localhost:3000/ (open ./src/fixtures/test.hook-pr-sync.json) --full --allow-errors
 # ```
 
