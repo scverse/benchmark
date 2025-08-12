@@ -48,14 +48,11 @@ impl<T> OctocrabOptional<T> for octocrab::Result<T> {
     fn found(self) -> octocrab::Result<Option<T>> {
         match self {
             Ok(value) => Ok(Some(value)),
-            Err(octocrab::Error::GitHub {
-                source:
-                    GitHubError {
-                        status_code: http::StatusCode::NOT_FOUND,
-                        ..
-                    },
-                ..
-            }) => Ok(None),
+            Err(octocrab::Error::GitHub { source, .. })
+                if source.status_code == http::StatusCode::NOT_FOUND =>
+            {
+                Ok(None)
+            }
             Err(e) => Err(e),
         }
     }
