@@ -1,0 +1,17 @@
+name: PR
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Conventional Commits
+      uses:  ytanikin/pr-conventional-commits@1.4.2
+      with:
+        # https://github.com/refined-github/refined-github/blob/main/source/helpers/conventional-commits.ts
+        # except `style` and `build`
+        task_types: '["feat","fix","chore","revert","docs","refactor","test","ci","perf"]'
+        add_label: 'false'

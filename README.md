@@ -20,6 +20,7 @@ Eventually, we’ll just have a project-wide webhook like this. For now, if you 
 
 1. Add a [asv config][] to your project (either the project root or a <samp>benchmarks</samp> directory)
 2. Add a webhook to your scverse project with these [webhook settings][], i.e.
+   - URL and secret from [the app’s 1password][]
    - Content type: <samp>application/json</samp>
    - Let me select individual events → **Pull Requests**
 3. Add a label <kbd>benchmark</kbd> to a PR authored by a trusted user.
@@ -27,6 +28,7 @@ Eventually, we’ll just have a project-wide webhook like this. For now, if you 
 
 [asv config]: https://asv.readthedocs.io/en/v0.6.1/using.html
 [webhook settings]: https://github.com/scverse/benchmark/settings/hooks/464592128
+[the app’s 1password]: https://start.1password.com/open/i?a=4HRQALMH4VEWFDAIQ53YNCNIG4&v=cc6gruiwkh6shmg4mmszacgmrq&i=qz7yf6i5w52lk4gp3cnmkqodfm&h=scverse.1password.com
 [scverse-benchmarks]: https://github.com/apps/scverse-benchmark
 
 ## MVP Setup
