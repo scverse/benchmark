@@ -1,11 +1,11 @@
-name: PR Validation
+name: PR
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
 
 jobs:
-  validate-pr-title:
+  validate:
     runs-on: ubuntu-latest
     steps:
     - name: Conventional Commits
