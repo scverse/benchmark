@@ -37,6 +37,7 @@ All these currently assume you have a <samp>&lt;user></samp> login with sudo rig
 
 ### Debugging
 
+- Use Rocky Linux’ cockpit (e.g. run `ssh -L 9090:<ip>:9090 <yourname>@<ip>` and then go to http://localhost:9090)
 - Use `journalctl -u benchmark -f` on the server to tail the logs of the service.
 - Check GitHub’s page for [Hook deliveries][].
 
