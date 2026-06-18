@@ -94,3 +94,7 @@ For local development:
 
 1. Start the server locally
 2. use `scripts/test.nu` to send a payload (check the script for examples for both steps)
+
+## Updates
+
+While `dnf` is transactional and therefore safe from broken connections, it is probably safest to start a `tmux` session before running `sudo dnf update` to update the machine.
