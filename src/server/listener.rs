@@ -69,6 +69,7 @@ async fn handle(
     // See https://github.com/XAMPPRocky/octocrab/issues/897#issuecomment-4750081605
     let base = pr.base.expect("PR event without base");
     let head = pr.head.expect("PR event without head");
+    let pr = pr.number.expect("PR event without number");
     let Some(Repository { name: repo, .. }) = base.repo else {
         return Err((StatusCode::BAD_REQUEST, "missing repo".to_owned()));
     };
@@ -89,7 +90,7 @@ async fn handle(
         Compare {
             repo,
             commits: [base.sha, head.sha],
-            pr: pr.number.unwrap(),
+            pr,
             check_id,
         },
         state,
