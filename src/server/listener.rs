@@ -66,7 +66,10 @@ async fn handle(
     {
         return Ok("skipped: missing benchmark label".to_owned());
     }
-    let Some(Repository { name: repo, .. }) = pr.base.repo else {
+    // See https://github.com/XAMPPRocky/octocrab/issues/897#issuecomment-4750081605
+    let base = pr.base.expect("PR event without base");
+    let head = pr.head.expect("PR event without head");
+    let Some(Repository { name: repo, .. }) = base.repo else {
         return Err((StatusCode::BAD_REQUEST, "missing repo".to_owned()));
     };
 
@@ -74,7 +77,7 @@ async fn handle(
     let checks = github_client.checks(ORG, &repo);
     // `.ok()` allows creating the check run creation to fail. We’ll not try to update it in that case.
     let check_id = checks
-        .create_check_run("benchmark", &pr.head.sha)
+        .create_check_run("benchmark", &head.sha)
         .status(CheckRunStatus::Queued)
         .send()
         .await
@@ -85,8 +88,8 @@ async fn handle(
     handle_enqueue(
         Compare {
             repo,
-            commits: [pr.base.sha, pr.head.sha],
-            pr: pr.number,
+            commits: [base.sha, head.sha],
+            pr: pr.number.unwrap(),
             check_id,
         },
         state,

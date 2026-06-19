@@ -119,7 +119,7 @@ async fn assert_status_eq(res: Response<Body>, status_expected: StatusCode) -> S
     if status == status_expected {
         return body;
     }
-    panic!("{status} != {status_expected} ({body})",);
+    panic!("{status} != {status_expected} ({body})");
 }
 
 #[tokio::test]
@@ -165,10 +165,10 @@ async fn should_enqueue_valid_pr_event() {
     // pull request with benchmark label
     let evt: PullRequestWebhookEventPayload = serde_json::from_str(PR).unwrap();
     // expected event payload
-    let sha_base: &str = evt.pull_request.base.sha.as_ref();
-    let sha_head: &str = evt.pull_request.head.sha.as_ref();
+    let base = evt.pull_request.base.as_deref().unwrap();
+    let head = evt.pull_request.head.as_deref().unwrap();
     let commit_after: Commit = serde_json::from_str(COMMIT).unwrap();
-    assert_eq!(commit_after.sha, sha_head);
+    assert_eq!(commit_after.sha, head.sha);
     let template = ResponseTemplate::new(200).set_body_json(commit_after);
     let (app, mut recv) = app(Some(template)).await;
     let request = make_webhook_request(serde_json::to_string(&evt).unwrap(), true);
@@ -177,9 +177,9 @@ async fn should_enqueue_valid_pr_event() {
     let body = assert_status_eq(res, StatusCode::OK).await;
     assert_eq!(body, "enqueued");
     let evt = Compare {
-        repo: evt.pull_request.base.repo.unwrap().name,
-        commits: [sha_base.to_owned(), sha_head.to_owned()],
-        pr: evt.pull_request.number,
+        repo: base.repo.as_ref().unwrap().name.clone(),
+        commits: [base.sha.clone(), head.sha.clone()],
+        pr: evt.pull_request.number.unwrap(),
         check_id: None,
     };
     assert_eq!(recv.next().await, Some(evt.into()));
