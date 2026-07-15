@@ -36,7 +36,7 @@ rstest = "0.26.1"
 assert-json-diff = "2.0.2"
 wiremock = "0.6.5"
 temp-env = "0.3.6"
-test-temp-dir = "0.7.0"
+test-temp-dir = "0.8.0"
 # transitive deps we use directly
 http = "1.0.0"
 hmac-sha256 = "1.1.14"
