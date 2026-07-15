@@ -213,20 +213,18 @@ fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<Pat
     reader.read_to_string(&mut buffer)?;
     let config: AsvConfig = serde_json5::from_str(&buffer)?;
 
-    {
-        let mut remote = repo.find_remote("origin")?;
-        let refs: Vec<String> = config
-            .branches
-            .iter()
-            .map(|b| format!("refs/heads/{b}"))
-            .chain(refs.iter().cloned())
-            .collect();
-        tracing::info!(
-            "Fetching refs {refs:?} from remote {}",
-            remote.name().unwrap_or("")
-        );
-        remote.fetch(&refs, None, None)?;
-    }
+    let mut remote = repo.find_remote("origin")?;
+    let refs: Vec<String> = config
+        .branches
+        .iter()
+        .map(|b| format!("refs/heads/{b}"))
+        .chain(refs.iter().cloned())
+        .collect();
+    tracing::info!(
+        "Fetching refs {refs:?} from remote {}",
+        remote.name()?.unwrap_or("")
+    );
+    remote.fetch(&refs, None, None)?;
     Ok(wd)
 }
 

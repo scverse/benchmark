@@ -119,7 +119,7 @@ async fn assert_status_eq(res: Response<Body>, status_expected: StatusCode) -> S
     if status == status_expected {
         return body;
     }
-    panic!("{status} != {status_expected} ({body})",);
+    panic!("{status} != {status_expected} ({body})");
 }
 
 #[tokio::test]
@@ -165,8 +165,8 @@ async fn should_enqueue_valid_pr_event() {
     // pull request with benchmark label
     let evt: PullRequestWebhookEventPayload = serde_json::from_str(PR).unwrap();
     // expected event payload
-    let sha_base: &str = evt.pull_request.base.sha.as_ref();
-    let sha_head: &str = evt.pull_request.head.sha.as_ref();
+    let sha_base = evt.pull_request.base.sha.as_str();
+    let sha_head = evt.pull_request.head.sha.as_str();
     let commit_after: Commit = serde_json::from_str(COMMIT).unwrap();
     assert_eq!(commit_after.sha, sha_head);
     let template = ResponseTemplate::new(200).set_body_json(commit_after);
