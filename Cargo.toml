@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.102"
+anyhow = "1.0.103"
 askama = "0.16.0"
 axum = { version = "0.8.9", features = ["http2", "tokio", "tracing", "macros"] }
 axum-github-webhook-extract = "0.3.0"
@@ -16,7 +16,7 @@ git2 = "0.21.0"
 http = "1.4.2"
 jsonwebtoken = "10.4.0"
 octocrab = { version = "0.54.0", features = ["stream", "tracing"] }
-regex = "1.12.4"
+regex = "1.13.0"
 secrecy = "0.10.3"
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json5 = "0.2.1"
