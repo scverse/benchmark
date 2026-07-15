@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Conventional Commits
-      uses:  ytanikin/pr-conventional-commits@1.4.2
+      uses:  ytanikin/pr-conventional-commits@1.5.2
       with:
         # https://github.com/refined-github/refined-github/blob/main/source/helpers/conventional-commits.ts
         # except `style` and `build`
