@@ -223,9 +223,7 @@ fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<Pat
             .collect();
         tracing::info!(
             "Fetching refs {refs:?} from remote {}",
-            remote
-                .name_bytes()
-                .map_or_else(Default::default, String::from_utf8_lossy)
+            remote.name()?.unwrap_or("")
         );
         remote.fetch(&refs, None, None)?;
     }
