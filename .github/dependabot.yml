@@ -22,3 +22,7 @@ updates:
   groups:
     cargo:
       patterns: ['*']
+  ignore:
+  # octocrab requires jsonwebtoken 10; two majors in the graph don't typecheck
+  - dependency-name: jsonwebtoken
+    update-types: [version-update:semver-major]
