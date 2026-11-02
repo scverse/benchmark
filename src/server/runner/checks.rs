@@ -33,13 +33,13 @@ where
     };
     let (conclusion, res) = match func().await {
         Ok((text, success)) => {
-            "Benchmark run successful".clone_into(&mut output.summary);
             output.text = Some(clamp_lines(&text, u16::MAX.into()).to_owned());
-            let conclusion = if success {
-                CheckRunConclusion::Success
+            let (conclusion, summary) = if success {
+                (CheckRunConclusion::Success, "Benchmark run successful")
             } else {
-                CheckRunConclusion::Failure
+                (CheckRunConclusion::Failure, "Some benchmarks failed")
             };
+            summary.clone_into(&mut output.summary);
             (conclusion, Ok(text))
         }
         Err(e) => {
