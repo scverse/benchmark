@@ -11,7 +11,9 @@ No changes in benchmarks.
 {% if !success %}
 > [!WARNING]
 > Some benchmarks failed
-{% endif %}
+{% if !failed.is_empty() %}>
+{% for name in failed %}> - `{{ name }}`
+{% endfor %}{% endif %}{% endif %}
 
 Comparison: <https://github.com/scverse/{{ cmp.repo }}/compare/{{ cmp.commits[0] }}..{{ cmp.commits[1] }}>
 Last changed: <time datetime="{{ now.to_rfc3339() }}">{{ now.to_rfc2822() }}</time>

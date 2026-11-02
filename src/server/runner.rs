@@ -44,10 +44,12 @@ async fn full_compare(cmp: &Compare) -> Result<(String, bool), anyhow::Error> {
 async fn compare(rr: RunResult, cmp: &Compare) -> Result<String> {
     let mut compare = AsvCompare::new(&rr.wd, &cmp.commits[0], &cmp.commits[1]);
     compare.in_envs(rr.env_specs);
+    let short = compare.output().await?;
+    let full = compare.only_changed(false).output().await?;
     // Try updating comment with short comparison
-    if let Err(e) = comment::update(cmp, &compare.output().await?, rr.success).await {
+    if let Err(e) = comment::update(cmp, &short, &full, rr.success).await {
         tracing::error!("Update comment error: {e:?}");
     }
     // Return full comparison
-    compare.only_changed(false).output().await
+    Ok(full)
 }
