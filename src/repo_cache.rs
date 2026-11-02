@@ -59,3 +59,12 @@ fn get_default_branch(remote: &git2::Remote) -> Result<String> {
         .context("default branch is not valid UTF-8")?
         .to_owned())
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn git2_has_https() {
+        // git2 ≥0.21 has no default features, so cloning from GitHub silently breaks without this
+        assert!(git2::Version::get().https());
+    }
+}
