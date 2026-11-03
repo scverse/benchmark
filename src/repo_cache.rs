@@ -46,6 +46,7 @@ pub(crate) fn sync_repo(repo: &str, to_ref: Option<&str>) -> Result<(Checkout, S
         gix::open(&git_dir)?
     } else {
         let url = format!("https://github.com/{ORG}/{repo}.git");
+        std::fs::create_dir_all(*CACHE_DIR)?;
         gix::prepare_clone_bare(url.as_str(), &git_dir)?
             .fetch_only(Discard, &IS_INTERRUPTED)
             .context(anyhow!("failed to clone {url}"))?
