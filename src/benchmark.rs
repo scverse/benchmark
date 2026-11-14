@@ -9,7 +9,7 @@ use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-use crate::repo_cache::sync_repo;
+use crate::repo_cache::{sync_repo, Checkout};
 use crate::traits::RunConfig;
 
 #[derive(Default, Debug, Clone)]
@@ -24,11 +24,13 @@ impl EnvSpecs {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct RunResult {
     pub success: bool,
     pub wd: PathBuf,
     pub env_specs: EnvSpecs,
+    /// Keeps `wd` alive until the result is dropped
+    pub checkout: Checkout,
 }
 
 /// Sync repo to match remote’s branch, and run ASV afterwards.
@@ -36,14 +38,17 @@ pub(crate) async fn sync_repo_and_run<R>(req: &R) -> Result<RunResult>
 where
     R: RunConfig + Send + Sync + Clone,
 {
-    let (repo, config_ref) = {
+    let (checkout, config_ref) = {
         // clone data used in the thread
         let repo = req.repo().to_owned();
         let config_ref = req.config_ref().map(str::to_owned);
         tokio::task::spawn_blocking(move || sync_repo(&repo, config_ref.as_deref())).await??
     };
-    tracing::info!("Synced config repo to {:?} @ {config_ref}", repo.path());
-    run_benchmark(repo, req.run_on()).await
+    tracing::info!(
+        "Checked out config repo to {:?} @ {config_ref}",
+        checkout.path
+    );
+    run_benchmark(checkout, req.run_on()).await
 }
 
 /// Create an `asv` command in the working directory
@@ -136,10 +141,13 @@ async fn resolve_env_from_stdout(command: &mut Command) -> Result<Vec<String>> {
     Ok(parsed)
 }
 
-async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<RunResult> {
-    let wd = {
+async fn run_benchmark(checkout: Checkout, on: &[String]) -> Result<RunResult> {
+    let (checkout, wd) = {
         let on = on.to_owned();
-        tokio::task::spawn_blocking(move || fetch_configured_refs(&repo, &on)).await??
+        tokio::task::spawn_blocking(move || {
+            fetch_configured_refs(&checkout, &on).map(|wd| (checkout, wd))
+        })
+        .await??
     };
 
     tracing::info!("Re-discovering benchmarks in {}", wd.display());
@@ -184,6 +192,7 @@ async fn run_benchmark(repo: git2::Repository, on: &[String]) -> Result<RunResul
         success,
         wd,
         env_specs,
+        checkout,
     })
 }
 
@@ -197,13 +206,13 @@ fn default_branches() -> Vec<String> {
     vec!["master".to_owned()]
 }
 
-fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<PathBuf> {
+fn fetch_configured_refs(checkout: &Checkout, refs: &[String]) -> Result<PathBuf> {
     let wd = {
-        let wd = repo.workdir().context("no workdir")?;
+        let wd = &checkout.path;
         if wd.join("benchmarks").join("asv.conf.json").is_file() {
             wd.join("benchmarks")
         } else {
-            wd.to_path_buf()
+            wd.clone()
         }
     };
     // read ASV config
@@ -213,18 +222,15 @@ fn fetch_configured_refs(repo: &git2::Repository, refs: &[String]) -> Result<Pat
     reader.read_to_string(&mut buffer)?;
     let config: AsvConfig = serde_json5::from_str(&buffer)?;
 
-    let mut remote = repo.find_remote("origin")?;
     let refs: Vec<String> = config
         .branches
         .iter()
-        .map(|b| format!("refs/heads/{b}"))
+        // ASV looks up branches by name, so they need to be local
+        .map(|b| format!("+refs/heads/{b}:refs/heads/{b}"))
         .chain(refs.iter().cloned())
         .collect();
-    tracing::info!(
-        "Fetching refs {refs:?} from remote {}",
-        remote.name()?.unwrap_or("")
-    );
-    remote.fetch(&refs, None, None)?;
+    tracing::info!("Fetching refs {refs:?} from origin");
+    checkout.fetch(&refs)?;
     Ok(wd)
 }
 
