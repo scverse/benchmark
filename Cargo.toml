@@ -12,7 +12,12 @@ chrono = "0.4.45"
 clap = { version = "4.6.1", features = ["derive", "env"] }
 directories = "6.0.0"
 futures = "0.3.32"
-git2 = { version = "0.21.0", features = ["https"] }
+gix = { version = "0.90.0", default-features = false, features = [
+  "sha1",
+  "auto-chain-error",
+  "blocking-http-transport-reqwest-rust-tls",
+  "worktree-mutation",
+] }
 http = "1.4.2"
 jsonwebtoken = "10.4.0"
 octocrab = { version = "0.54.0", features = ["stream", "tracing"] }

@@ -35,6 +35,7 @@ async fn main() -> Result<()> {
                 success,
                 wd,
                 env_specs,
+                checkout: _checkout,
             } = benchmark::sync_repo_and_run(&args).await?;
             // if exactly two are specified, show a comparison
             if let [before, after] = args.run_on.as_slice() {
