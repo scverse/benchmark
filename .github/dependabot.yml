@@ -26,3 +26,14 @@ updates:
   # octocrab requires jsonwebtoken 10; two majors in the graph don't typecheck
   - dependency-name: jsonwebtoken
     update-types: [version-update:semver-major]
+- package-ecosystem: pre-commit
+  directory: /
+  schedule:
+    interval: weekly
+  cooldown:
+    default-days: 7
+  commit-message:
+    prefix: ci
+  groups:
+    pre-commit:
+      patterns: ['*']
